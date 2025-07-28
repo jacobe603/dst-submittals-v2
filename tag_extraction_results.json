@@ -1,0 +1,525 @@
+{
+  "tag_mapping": {
+    "10_Fan Curve - Supply.jpg": null,
+    "10_Item Summary.docx": "AHU-0",
+    "10_PreciseLine Drawings.docx": "AHU-0",
+    "10_Technical Data Sheet.docx": "AHU-0",
+    "13_Drawing.doc": null,
+    "13_Fan Curve.doc": null,
+    "13_Item Summary.docx": "MAU-12",
+    "13_Technical Data Sheet.doc": "MAU-12",
+    "28_Fan Curve - Supply.jpg": null,
+    "28_Item Summary.docx": "AHU-10",
+    "28_PreciseLine Drawings.docx": "AHU-10",
+    "28_Technical Data Sheet.docx": "AHU-10",
+    "30_Drawing.doc": null,
+    "30_Fan Curve.doc": null,
+    "30_Item Summary.docx": "AHU-E1",
+    "30_Technical Data Sheet.doc": "AHU-E1",
+    "31_Drawing.doc": null,
+    "31_Fan Curve.doc": null,
+    "31_Item Summary.docx": "AHU-E2",
+    "31_Technical Data Sheet.doc": "AHU-E2",
+    "32_Drawing.doc": null,
+    "32_Fan Curve.doc": null,
+    "32_Item Summary.docx": "AHU-E3",
+    "32_Technical Data Sheet.doc": "AHU-E3",
+    "33_Drawing.doc": null,
+    "33_Fan Curve.doc": null,
+    "33_Item Summary.docx": "AHU-M3",
+    "33_Technical Data Sheet.doc": "AHU-M3",
+    "35_Drawing.doc": null,
+    "35_Fan Curve.doc": null,
+    "35_Item Summary.docx": "AHU-7",
+    "35_Technical Data Sheet.doc": "AHU-7",
+    "7_Fan Curve - Supply.jpg": null,
+    "7_Item Summary.docx": "AHU-11",
+    "7_PreciseLine Drawings.docx": "AHU-11",
+    "7_Technical Data Sheet.docx": "AHU-11",
+    "8_Drawing.doc": null,
+    "8_Fan Curve.doc": null,
+    "8_Item Summary.docx": "AHU-8",
+    "8_Technical Data Sheet.doc": "AHU-8",
+    "9_Drawing.doc": null,
+    "9_Fan Curve.doc": null,
+    "9_Item Summary.docx": "AHU-9",
+    "9_Technical Data Sheet.doc": "AHU-9"
+  },
+  "tag_groups": {
+    "AHU-0": [
+      "10_Item Summary.docx",
+      "10_PreciseLine Drawings.docx",
+      "10_Technical Data Sheet.docx"
+    ],
+    "MAU-12": [
+      "13_Item Summary.docx",
+      "13_Technical Data Sheet.doc"
+    ],
+    "AHU-10": [
+      "28_Item Summary.docx",
+      "28_PreciseLine Drawings.docx",
+      "28_Technical Data Sheet.docx"
+    ],
+    "AHU-E1": [
+      "30_Item Summary.docx",
+      "30_Technical Data Sheet.doc"
+    ],
+    "AHU-E2": [
+      "31_Item Summary.docx",
+      "31_Technical Data Sheet.doc"
+    ],
+    "AHU-E3": [
+      "32_Item Summary.docx",
+      "32_Technical Data Sheet.doc"
+    ],
+    "AHU-M3": [
+      "33_Item Summary.docx",
+      "33_Technical Data Sheet.doc"
+    ],
+    "AHU-7": [
+      "35_Item Summary.docx",
+      "35_Technical Data Sheet.doc"
+    ],
+    "AHU-11": [
+      "7_Item Summary.docx",
+      "7_PreciseLine Drawings.docx",
+      "7_Technical Data Sheet.docx"
+    ],
+    "AHU-8": [
+      "8_Item Summary.docx",
+      "8_Technical Data Sheet.doc"
+    ],
+    "AHU-9": [
+      "9_Item Summary.docx",
+      "9_Technical Data Sheet.doc"
+    ]
+  },
+  "extraction_log": [
+    {
+      "filename": "10_Fan Curve - Supply.jpg",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "10_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-0",
+      "error": null
+    },
+    {
+      "filename": "10_PreciseLine Drawings.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-0",
+      "error": null
+    },
+    {
+      "filename": "10_Technical Data Sheet.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-0",
+      "error": null
+    },
+    {
+      "filename": "13_Drawing.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "13_Drawing.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "13_Fan Curve.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "13_Fan Curve.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "13_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "MAU-12",
+      "error": null
+    },
+    {
+      "filename": "13_Technical Data Sheet.doc",
+      "method": "strings",
+      "success": true,
+      "tag": "MAU-12",
+      "error": null
+    },
+    {
+      "filename": "28_Fan Curve - Supply.jpg",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "28_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-10",
+      "error": null
+    },
+    {
+      "filename": "28_PreciseLine Drawings.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-10",
+      "error": null
+    },
+    {
+      "filename": "28_Technical Data Sheet.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-10",
+      "error": null
+    },
+    {
+      "filename": "30_Drawing.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "30_Drawing.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "30_Fan Curve.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "30_Fan Curve.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "30_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-E1",
+      "error": null
+    },
+    {
+      "filename": "30_Technical Data Sheet.doc",
+      "method": "strings",
+      "success": true,
+      "tag": "AHU-E1",
+      "error": null
+    },
+    {
+      "filename": "31_Drawing.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "31_Drawing.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "31_Fan Curve.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "31_Fan Curve.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "31_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-E2",
+      "error": null
+    },
+    {
+      "filename": "31_Technical Data Sheet.doc",
+      "method": "strings",
+      "success": true,
+      "tag": "AHU-E2",
+      "error": null
+    },
+    {
+      "filename": "32_Drawing.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "32_Drawing.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "32_Fan Curve.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "32_Fan Curve.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "32_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-E3",
+      "error": null
+    },
+    {
+      "filename": "32_Technical Data Sheet.doc",
+      "method": "strings",
+      "success": true,
+      "tag": "AHU-E3",
+      "error": null
+    },
+    {
+      "filename": "33_Drawing.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "33_Drawing.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "33_Fan Curve.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "33_Fan Curve.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "33_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-M3",
+      "error": null
+    },
+    {
+      "filename": "33_Technical Data Sheet.doc",
+      "method": "strings",
+      "success": true,
+      "tag": "AHU-M3",
+      "error": null
+    },
+    {
+      "filename": "35_Drawing.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "35_Drawing.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "35_Fan Curve.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "35_Fan Curve.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "35_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-7",
+      "error": null
+    },
+    {
+      "filename": "35_Technical Data Sheet.doc",
+      "method": "strings",
+      "success": true,
+      "tag": "AHU-7",
+      "error": null
+    },
+    {
+      "filename": "7_Fan Curve - Supply.jpg",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "7_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-11",
+      "error": null
+    },
+    {
+      "filename": "7_PreciseLine Drawings.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-11",
+      "error": null
+    },
+    {
+      "filename": "7_Technical Data Sheet.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-11",
+      "error": null
+    },
+    {
+      "filename": "8_Drawing.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "8_Drawing.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "8_Fan Curve.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "8_Fan Curve.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "8_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-8",
+      "error": null
+    },
+    {
+      "filename": "8_Technical Data Sheet.doc",
+      "method": "strings",
+      "success": true,
+      "tag": "AHU-8",
+      "error": null
+    },
+    {
+      "filename": "9_Drawing.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "9_Drawing.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "9_Fan Curve.doc",
+      "method": "olefile",
+      "success": false,
+      "tag": null,
+      "error": "'OleFileIO' object has no attribute '_olestream_size'"
+    },
+    {
+      "filename": "9_Fan Curve.doc",
+      "method": "all_methods",
+      "success": false,
+      "tag": null,
+      "error": "No tag found"
+    },
+    {
+      "filename": "9_Item Summary.docx",
+      "method": "python-docx",
+      "success": true,
+      "tag": "AHU-9",
+      "error": null
+    },
+    {
+      "filename": "9_Technical Data Sheet.doc",
+      "method": "strings",
+      "success": true,
+      "tag": "AHU-9",
+      "error": null
+    }
+  ],
+  "summary": {
+    "total_files": 44,
+    "files_with_tags": 25,
+    "files_without_tags": 19,
+    "unique_tags": 11
+  }
+}

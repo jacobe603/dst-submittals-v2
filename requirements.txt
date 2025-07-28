@@ -4,3 +4,4 @@ pypdf>=3.0.0
 docx2pdf>=0.1.8
 reportlab>=4.0.0
 pywin32>=306
+Pillow

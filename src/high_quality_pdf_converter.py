@@ -14,6 +14,9 @@ from docx2pdf import convert as docx2pdf_convert
 import pypdf
 from pypdf import PdfReader, PdfWriter
 import re
+import concurrent.futures
+from PIL import Image
+
 try:
     import win32com.client
     WORD_AVAILABLE = True
@@ -21,10 +24,24 @@ except ImportError:
     WORD_AVAILABLE = False
 
 class DocumentPDFConverter:
+    def check_libreoffice_available(self) -> bool:
+        """Check if LibreOffice is available"""
+        try:
+            # Try different LibreOffice command names
+            commands = ['soffice', 'libreoffice', 'libreoffice.exe', 'soffice.exe']
+            for cmd in commands:
+                if shutil.which(cmd):
+                    return True
+            return False
+        except Exception:
+            return False
+
     def __init__(self, docs_path: str, output_dir: str = "converted_pdfs"):
         self.docs_path = docs_path
         self.output_dir = output_dir
         self.conversion_log = []
+        self.libreoffice_available = self.check_libreoffice_available()
+        self.word_available = WORD_AVAILABLE
         
         # Create output directory
         os.makedirs(self.output_dir, exist_ok=True)
@@ -39,18 +56,20 @@ class DocumentPDFConverter:
             'error': error
         }
         self.conversion_log.append(log_entry)
-        
-    def check_libreoffice_available(self) -> bool:
-        """Check if LibreOffice is available"""
+
+    def _kill_soffice_processes(self):
+        """Kill any running soffice (LibreOffice) processes."""
         try:
-            # Try different LibreOffice command names
-            commands = ['soffice', 'libreoffice', 'libreoffice.exe', 'soffice.exe']
-            for cmd in commands:
-                if shutil.which(cmd):
-                    return True
-            return False
-        except Exception:
-            return False
+            # Find PIDs of soffice processes
+            pids = subprocess.check_output(["pgrep", "soffice"]).decode().strip().split('\n')
+            for pid in pids:
+                if pid:
+                    print(f"  [LibreOffice] Killing soffice process: {pid}")
+                    subprocess.run(["kill", "-9", pid], capture_output=True)
+        except subprocess.CalledProcessError: # pgrep returns 1 if no processes found
+            pass
+        except Exception as e:
+            print(f"  [ERROR] Failed to kill soffice processes: {e}")
     
     def convert_with_libreoffice(self, input_path: str, output_dir: str) -> Optional[str]:
         """Convert document using LibreOffice headless mode"""
@@ -58,12 +77,15 @@ class DocumentPDFConverter:
             filename = os.path.basename(input_path)
             print(f"  [LibreOffice] Converting {filename}...")
             
+            self._kill_soffice_processes() # Kill any existing soffice processes
+            import time
+            time.sleep(1) # Add a small delay
+
             # Try different LibreOffice commands
             commands = ['soffice', 'libreoffice', 'libreoffice.exe', 'soffice.exe']
             
             for cmd in commands:
                 if shutil.which(cmd):
-                    # Run LibreOffice conversion
                     result = subprocess.run([
                         cmd, '--headless', '--convert-to', 'pdf',
                         '--outdir', output_dir, input_path
@@ -77,10 +99,14 @@ class DocumentPDFConverter:
                         if os.path.exists(output_path):
                             self.log_conversion(filename, 'libreoffice', True, output_path)
                             return output_path
+                    else:
+                        error_msg = f"LibreOffice conversion failed: {result.stderr.strip()}"
+                        self.log_conversion(filename, 'libreoffice', False, error=error_msg)
+                        return None
                     
                     break
             
-            self.log_conversion(filename, 'libreoffice', False, error="LibreOffice conversion failed")
+            self.log_conversion(filename, 'libreoffice', False, error="LibreOffice command not found or conversion failed")
             return None
             
         except subprocess.TimeoutExpired:
@@ -88,6 +114,67 @@ class DocumentPDFConverter:
             return None
         except Exception as e:
             self.log_conversion(filename, 'libreoffice', False, error=str(e))
+            return None
+
+    def convert_image_to_pdf(self, input_path: str, output_dir: str) -> Optional[str]:
+        """Convert an image file (e.g., JPG) to PDF."""
+        try:
+            filename = os.path.basename(input_path)
+            base_name = os.path.splitext(filename)[0]
+            output_path = os.path.join(output_dir, f"{base_name}.pdf")
+
+            print(f"  [Image] Converting {filename} to PDF...")
+
+            image = Image.open(input_path)
+            # Convert to RGB if not already, as Pillow's save method for PDF requires it
+            if image.mode in ('RGBA', 'P'):
+                image = image.convert('RGB')
+            image.save(output_path, "PDF")
+
+            if os.path.exists(output_path):
+                self.log_conversion(filename, 'image_to_pdf', True, output_path)
+                return output_path
+            else:
+                self.log_conversion(filename, 'image_to_pdf', False, error="Output PDF not created from image")
+                return None
+        except Exception as e:
+            self.log_conversion(filename, 'image_to_pdf', False, error=str(e))
+            return None
+    
+    def convert_with_unoconv(self, input_path: str, output_dir: str) -> Optional[str]:
+        """Convert document using unoconv"""
+        try:
+            filename = os.path.basename(input_path)
+            base_name = os.path.splitext(filename)[0]
+            output_path = os.path.join(output_dir, f"{base_name}.pdf")
+            
+            print(f"  [unoconv] Converting {filename}...")
+            
+            self._kill_soffice_processes() # Kill any existing soffice processes
+            import time
+            time.sleep(1) # Add a small delay
+
+            result = subprocess.run([
+                'unoconv', '-f', 'pdf', '-o', output_path, input_path
+            ], capture_output=True, text=True, timeout=60)
+            
+            if result.returncode == 0:
+                if os.path.exists(output_path):
+                    self.log_conversion(filename, 'unoconv', True, output_path)
+                    return output_path
+                else:
+                    self.log_conversion(filename, 'unoconv', False, error="Output file not created")
+                    return None
+            else:
+                error_msg = f"unoconv conversion failed: Return code {result.returncode}. Stderr: {result.stderr.strip()}, Stdout: {result.stdout.strip()}"
+                self.log_conversion(filename, 'unoconv', False, error=error_msg)
+                return None
+                
+        except subprocess.TimeoutExpired:
+            self.log_conversion(filename, 'unoconv', False, error="Conversion timeout")
+            return None
+        except Exception as e:
+            self.log_conversion(filename, 'unoconv', False, error=str(e))
             return None
     
     def convert_with_docx2pdf(self, input_path: str, output_dir: str) -> Optional[str]:
@@ -183,24 +270,46 @@ class DocumentPDFConverter:
             if pdf_path:
                 return pdf_path
             
-            # Try Word COM as fallback for .docx
-            if WORD_AVAILABLE:
+            # Try Word COM as fallback for .docx (Windows only)
+            if self.word_available:
                 pdf_path = self.convert_with_word_com(input_path, self.output_dir)
                 if pdf_path:
                     return pdf_path
+            
+            # Try LibreOffice as a final fallback for .docx on Linux
+            if self.libreoffice_available:
+                pdf_path = self.convert_with_libreoffice(input_path, self.output_dir)
+                if pdf_path:
+                    return pdf_path
+            
+            # Try unoconv as a last resort for .docx
+            pdf_path = self.convert_with_unoconv(input_path, self.output_dir)
+            if pdf_path:
+                return pdf_path
         
         elif input_path.endswith('.doc'):
-            # For .doc files, try Word COM first (best quality)
-            if WORD_AVAILABLE:
+            # For .doc files, try Word COM first (best quality, Windows only)
+            if self.word_available:
                 pdf_path = self.convert_with_word_com(input_path, self.output_dir)
                 if pdf_path:
                     return pdf_path
             
             # Try LibreOffice as fallback for .doc
-            if self.check_libreoffice_available():
+            if self.libreoffice_available:
                 pdf_path = self.convert_with_libreoffice(input_path, self.output_dir)
                 if pdf_path:
                     return pdf_path
+            
+            # Try unoconv as a last resort for .doc
+            pdf_path = self.convert_with_unoconv(input_path, self.output_dir)
+            if pdf_path:
+                return pdf_path
+        
+        elif input_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+            # For image files, convert directly to PDF
+            pdf_path = self.convert_image_to_pdf(input_path, self.output_dir)
+            if pdf_path:
+                return pdf_path
         
         print(f"  [FAILED] Could not convert {filename}")
         return None
@@ -262,39 +371,60 @@ class DocumentPDFConverter:
             print(f"  [WARNING] Could not filter pages: {e}")
             return pdf_path  # Return original if filtering fails
     
+    import concurrent.futures
+    
+    def convert_and_filter(self, filename):
+        if filename.endswith(('.doc', '.docx')):
+            if 'Item Summary' in filename:
+                print(f"  [SKIP] {filename} - contains pricing information")
+                return None, None
+
+            input_path = os.path.join(self.docs_path, filename)
+
+            if os.path.exists(input_path):
+                pdf_path = self.convert_document_to_pdf(input_path)
+
+                if pdf_path:
+                    filtered_pdf_path = self.filter_pages_with_dollar(pdf_path)
+                    print(f"  [SUCCESS] {filename} -> {os.path.basename(filtered_pdf_path)}")
+                    return filename, filtered_pdf_path
+                else:
+                    print(f"  [FAILED] Could not convert {filename}")
+            else:
+                print(f"  [ERROR] File not found: {filename}")
+        
+        elif filename.endswith(('.jpg', '.jpeg', '.png')):
+            # Handle JPG files that should have been converted to PDF by tag_extractor
+            pdf_filename = os.path.splitext(filename)[0] + '.pdf'
+            pdf_path = os.path.join(self.docs_path, pdf_filename)
+            
+            if os.path.exists(pdf_path):
+                # Copy the PDF to our converted_pdfs directory
+                output_pdf_path = os.path.join(self.output_dir, pdf_filename)
+                shutil.copy2(pdf_path, output_pdf_path)
+                print(f"  [SUCCESS] {filename} -> {pdf_filename} (JPG->PDF)")
+                return filename, output_pdf_path
+            else:
+                print(f"  [ERROR] Expected PDF not found for {filename}: {pdf_filename}")
+        
+        return None, None
+
     def convert_all_documents(self, tag_mapping: Dict[str, str]) -> Dict[str, str]:
         """Convert all documents to PDF and return filename -> PDF path mapping"""
         print("="*60)
         print("CONVERTING DOCUMENTS TO HIGH-QUALITY PDF")
         print("="*60)
-        
+
         pdf_mapping = {}
-        
-        for filename, tag in tag_mapping.items():
-            if filename.endswith(('.doc', '.docx')):
-                # Skip Item Summary files entirely as they contain pricing
-                if 'Item Summary' in filename:
-                    print(f"  [SKIP] {filename} - contains pricing information")
-                    continue
-                    
-                input_path = os.path.join(self.docs_path, filename)
-                
-                if os.path.exists(input_path):
-                    # Convert to PDF
-                    pdf_path = self.convert_document_to_pdf(input_path)
-                    
-                    if pdf_path:
-                        # Filter out pages with dollar signs
-                        filtered_pdf_path = self.filter_pages_with_dollar(pdf_path)
-                        pdf_mapping[filename] = filtered_pdf_path
-                        print(f"  [SUCCESS] {filename} -> {os.path.basename(filtered_pdf_path)}")
-                    else:
-                        print(f"  [FAILED] Could not convert {filename}")
-                else:
-                    print(f"  [ERROR] File not found: {filename}")
-        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future_to_filename = {executor.submit(self.convert_and_filter, filename): filename for filename, tag in tag_mapping.items()}
+            for future in concurrent.futures.as_completed(future_to_filename):
+                filename, pdf_path = future.result()
+                if filename and pdf_path:
+                    pdf_mapping[filename] = pdf_path
+
         return pdf_mapping
-    
+
     def print_conversion_summary(self):
         """Print conversion summary"""
         print("\n" + "="*60)

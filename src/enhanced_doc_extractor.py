@@ -72,15 +72,31 @@ def extract_tag_from_doc_advanced(file_path: str) -> Optional[str]:
     
     return None
 
-def enhance_tag_mapping():
+def extract_tag_from_doc_filename_pattern(file_path: str, tag_mapping: Dict[str, str]) -> Optional[str]:
+    """Extract tag from .doc filename pattern (e.g., 13_Drawing.doc -> MAU-12)"""
+    filename = os.path.basename(file_path)
+    file_number_match = re.match(r'^(\d+)', filename)
+    if not file_number_match:
+        return None
+
+    file_number_prefix = file_number_match.group(1)
+
+    for mapped_filename, tag in tag_mapping.items():
+        mapped_file_number_match = re.match(r'^(\d+)', mapped_filename)
+        if tag and mapped_file_number_match and mapped_file_number_match.group(1) == file_number_prefix:
+            print(f"  [INFERRED from filename] {filename} -> {tag} (from {mapped_filename})")
+            return tag
+    return None
+
+def enhance_tag_mapping(tag_mapping: Dict[str, str], docs_path: str):
     """Enhance the existing tag mapping with better .doc extraction"""
     
     # Load existing mapping
-    with open('tag_mapping.json', 'r') as f:
-        data = json.load(f)
+    # with open('tag_mapping.json', 'r') as f:
+    #     data = json.load(f)
     
-    tag_mapping = data['tag_mapping']
-    docs_path = r"C:\Users\jacob\Claude\python-docx\documents\CS_Air_Handler_Light_Kit"
+    # tag_mapping = data['tag_mapping']
+    # docs_path = r"C:\Users\jacob\Claude\python-docx\documents\CS_Air_Handler_Light_Kit"
     
     print("ENHANCING .DOC FILE TAG EXTRACTION")
     print("="*50)
@@ -91,14 +107,22 @@ def enhance_tag_mapping():
         if not current_tag and filename.endswith('.doc'):
             file_path = os.path.join(docs_path, filename)
             if os.path.exists(file_path):
-                print(f"\nProcessing: {filename}")
-                new_tag = extract_tag_from_doc_advanced(file_path)
+                new_tag = extract_tag_from_doc_filename_pattern(file_path, tag_mapping)
+                if not new_tag:
+                    new_tag = extract_tag_from_doc_advanced(file_path)
+                if new_tag:
+                    tag_mapping[filename] = new_tag
+                    enhanced_count += 1
+        elif not current_tag and filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+            file_path = os.path.join(docs_path, filename)
+            if os.path.exists(file_path):
+                new_tag = extract_tag_from_doc_filename_pattern(file_path, tag_mapping)
                 if new_tag:
                     tag_mapping[filename] = new_tag
                     enhanced_count += 1
     
     # Update the data structure
-    data['tag_mapping'] = tag_mapping
+    data = {'tag_mapping': tag_mapping}
     data['tag_groups'] = create_tag_groups(tag_mapping)
     data['summary'] = {
         'total_files': len(tag_mapping),
@@ -153,5 +177,23 @@ def print_enhanced_summary(data):
         print(f"  - {filename}")
 
 if __name__ == "__main__":
-    enhanced_data = enhance_tag_mapping()
+    # This block is for standalone testing of enhanced_doc_extractor
+    # In normal operation, it's called by dst_submittals.py
+    
+    # For testing, you might need to create a dummy tag_mapping.json
+    # and specify a docs_path
+    
+    # Example dummy data (replace with actual paths/data for testing)
+    dummy_tag_mapping = {
+        "13_Drawing.doc": None,  # Example of a file that needs enhancing
+        "existing_file.docx": "AHU-1",
+    }
+    dummy_docs_path = r"C:\Users\jacob\Claude\python-docx\documents\CS_Air_Handler_Light_Kit" # Replace with your actual path
+    
+    # Ensure tag_mapping.json exists for extract_tag_from_doc_advanced to load
+    # This is a simplified example; in a real scenario, tag_extractor.py would run first
+    with open('tag_mapping.json', 'w') as f:
+        json.dump({'tag_mapping': dummy_tag_mapping}, f)
+
+    enhanced_data = enhance_tag_mapping(dummy_tag_mapping, dummy_docs_path)
     print_enhanced_summary(enhanced_data)

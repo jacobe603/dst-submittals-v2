@@ -11,6 +11,7 @@ This script provides a simple command-line interface to the DST Submittals Gener
 import os
 import sys
 import argparse
+import json
 from datetime import datetime
 
 # Add src directory to path
@@ -65,7 +66,7 @@ def main():
     try:
         # Import after path setup
         from tag_extractor import TagExtractor
-        from enhanced_doc_extractor import EnhancedDocExtractor
+        from enhanced_doc_extractor import enhance_tag_mapping
         from high_quality_pdf_converter import DocumentPDFConverter
         from title_page_generator import TitlePageGenerator
         from create_final_pdf import FinalPDFAssembler
@@ -77,8 +78,12 @@ def main():
         extractor = TagExtractor(args.documents_path)
         tag_mapping = extractor.extract_all_tags()
         
-        enhanced_extractor = EnhancedDocExtractor(args.documents_path)
-        enhanced_mapping = enhanced_extractor.create_enhanced_mapping(tag_mapping)
+        # Call the function directly
+        enhanced_mapping = enhance_tag_mapping(tag_mapping, args.documents_path)
+        
+        if args.verbose:
+            print(f"  Found {len(tag_mapping)} documents with tags")
+            print(f"  Identified {len(enhanced_mapping.get('tag_groups', {}))} equipment tags")
         
         if args.verbose:
             print(f"  Found {len(tag_mapping)} documents with tags")
@@ -90,6 +95,10 @@ def main():
         
         converter = DocumentPDFConverter(args.documents_path)
         pdf_mapping = converter.convert_all_documents(tag_mapping)
+        
+        # Save the pdf_mapping to a file
+        with open('pdf_conversion_mapping.json', 'w', encoding='utf-8') as f:
+            json.dump(pdf_mapping, f, indent=2, ensure_ascii=False)
         
         if args.verbose:
             converter.print_conversion_summary()

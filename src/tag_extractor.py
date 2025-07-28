@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from docx import Document
 import docx2txt
+from PIL import Image
 
 class TagExtractor:
     def __init__(self, docs_path: str):
@@ -59,6 +60,65 @@ class TagExtractor:
         
         return tags
     
+    def convert_image_to_pdf(self, image_path: str, output_dir: str = None) -> Optional[str]:
+        """Convert JPG/PNG image to PDF"""
+        try:
+            if output_dir is None:
+                output_dir = os.path.dirname(image_path)
+            
+            # Create output filename
+            base_name = os.path.splitext(os.path.basename(image_path))[0]
+            pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
+            
+            # Convert image to PDF
+            image = Image.open(image_path)
+            
+            # Convert to RGB if necessary (for PNG with transparency)
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Save as PDF
+            image.save(pdf_path, 'PDF', resolution=100.0, quality=95)
+            
+            print(f"  [CONVERTED] {os.path.basename(image_path)} -> {os.path.basename(pdf_path)}")
+            return pdf_path
+            
+        except Exception as e:
+            print(f"  [ERROR] Failed to convert {os.path.basename(image_path)}: {str(e)}")
+            return None
+    
+    def extract_filename_prefix(self, filename: str) -> Optional[str]:
+        """Extract the numeric prefix from filename (e.g., '10_' from '10_Fan Curve - Supply.jpg')"""
+        import re
+        match = re.match(r'^(\d+)_', filename)
+        return match.group(1) if match else None
+    
+    def find_tag_by_filename_matching(self, target_filename: str) -> Optional[str]:
+        """Find tag by matching filename prefix with other files in the directory"""
+        target_prefix = self.extract_filename_prefix(target_filename)
+        if not target_prefix:
+            return None
+            
+        # Look for .docx files with the same prefix first (they have the best success rate)
+        docx_files = glob.glob(os.path.join(self.docs_path, f"{target_prefix}_*.docx"))
+        for docx_file in docx_files:
+            tag = self.extract_from_docx_python_docx(docx_file)
+            if tag:
+                self.log_extraction(target_filename, 'filename_matching_docx', True, tag)
+                return tag
+        
+        # Fallback to .doc files with the same prefix
+        doc_files = glob.glob(os.path.join(self.docs_path, f"{target_prefix}_*.doc"))
+        for doc_file in doc_files:
+            # Try string extraction method
+            tag = self.extract_from_doc_strings(doc_file)
+            if tag:
+                self.log_extraction(target_filename, 'filename_matching_doc', True, tag)
+                return tag
+                
+        return None
+    
+
     def extract_from_docx_python_docx(self, file_path: str) -> Optional[str]:
         """Extract tag using python-docx library"""
         try:
@@ -180,6 +240,14 @@ class TagExtractor:
                 self.log_extraction(filename, 'olefile', True, tag)
                 return tag
         
+        elif file_ext in ['.jpg', '.jpeg', '.png']:
+            # Use filename matching for image files
+            tag = self.find_tag_by_filename_matching(filename)
+            if tag:
+                # Also convert the image to PDF
+                self.convert_image_to_pdf(file_path)
+                return tag
+        
         # If no tag found, log the failure
         self.log_extraction(filename, 'all_methods', False, error='No tag found')
         return None
@@ -190,13 +258,16 @@ class TagExtractor:
         print("EXTRACTING TAGS FROM ALL FILES")
         print("="*60)
         
-        # Get all .doc and .docx files
+        # Get all .doc, .docx, and image files
         doc_files = glob.glob(os.path.join(self.docs_path, "*.doc"))
         docx_files = glob.glob(os.path.join(self.docs_path, "*.docx"))
+        image_files = glob.glob(os.path.join(self.docs_path, "*.jpg")) + \
+                      glob.glob(os.path.join(self.docs_path, "*.jpeg")) + \
+                      glob.glob(os.path.join(self.docs_path, "*.png"))
         
-        all_files = sorted(doc_files + docx_files)
+        all_files = sorted(doc_files + docx_files + image_files)
         
-        print(f"Found {len(docx_files)} .docx files and {len(doc_files)} .doc files")
+        print(f"Found {len(docx_files)} .docx files, {len(doc_files)} .doc files, and {len(image_files)} image files")
         print()
         
         for file_path in all_files:

@@ -71,25 +71,41 @@ class FinalPDFAssembler:
         
         return ordered_files
     
-    def add_pdf_to_writer(self, writer: PdfWriter, pdf_path: str, description: str = "") -> bool:
-        """Add a PDF file to the writer, return success status"""
+    def add_pdf_to_writer(self, writer: PdfWriter, pdf_path: str, description: str = "", 
+                          add_bookmark: bool = False, bookmark_title: str = None, 
+                          bookmark_parent=None) -> tuple:
+        """Add a PDF file to the writer, optionally add bookmark, return (success, start_page, end_page, bookmark_ref)"""
         try:
             if not os.path.exists(pdf_path):
                 print(f"  [SKIP] File not found: {os.path.basename(pdf_path)}")
-                return False
+                return False, None, None, None
             
             reader = PdfReader(pdf_path)
             page_count = len(reader.pages)
             
+            # Record the starting page number (0-indexed)
+            start_page = len(writer.pages)
+            
             for page in reader.pages:
                 writer.add_page(page)
             
+            end_page = len(writer.pages) - 1
+            
+            # Add bookmark if requested
+            bookmark_ref = None
+            if add_bookmark and bookmark_title:
+                bookmark_ref = writer.add_outline_item(
+                    title=bookmark_title, 
+                    page_number=start_page,
+                    parent=bookmark_parent
+                )
+            
             print(f"  [ADDED] {os.path.basename(pdf_path)} ({page_count} pages)")
-            return True
+            return True, start_page, end_page, bookmark_ref
             
         except Exception as e:
             print(f"  [ERROR] Failed to add {os.path.basename(pdf_path)}: {e}")
-            return False
+            return False, None, None, None
     
     def create_final_pdf(self, output_filename: str = None) -> str:
         """Create the final tag-ordered PDF document"""
@@ -118,9 +134,12 @@ class FinalPDFAssembler:
         for tag in sorted_tags:
             print(f"Processing TAG: {tag}")
             
-            # Add title page for this tag
+            # Add title page for this tag with main bookmark
             title_page_path = os.path.join(self.title_pages_dir, f"title_{tag.replace('-', '_')}.pdf")
-            self.add_pdf_to_writer(writer, title_page_path, f"Title page for {tag}")
+            success, start_page, end_page, tag_bookmark = self.add_pdf_to_writer(
+                writer, title_page_path, f"Title page for {tag}", 
+                add_bookmark=True, bookmark_title=tag
+            )
             
             # Get files for this tag in correct order
             ordered_files = self.get_file_order_for_tag(tag)
@@ -131,7 +150,18 @@ class FinalPDFAssembler:
                 converted_pdf_path = self.pdf_mapping.get(filename)
                 
                 if converted_pdf_path and os.path.exists(converted_pdf_path):
-                    self.add_pdf_to_writer(writer, converted_pdf_path, filename)
+                    # Create a clean bookmark title from filename
+                    clean_filename = os.path.splitext(filename)[0]
+                    # Remove the numeric prefix (e.g., "10_" from "10_Technical Data Sheet")
+                    clean_title = clean_filename.replace('_', ' ').strip()
+                    if clean_title.split()[0].isdigit():
+                        clean_title = ' '.join(clean_title.split()[1:])
+                    
+                    self.add_pdf_to_writer(
+                        writer, converted_pdf_path, filename,
+                        add_bookmark=True, bookmark_title=clean_title, 
+                        bookmark_parent=tag_bookmark
+                    )
                 else:
                     print(f"  [SKIP] No PDF available for {filename}")
             
@@ -140,16 +170,30 @@ class FinalPDFAssembler:
         # Add CUT SHEETS section
         print("Processing CUT SHEETS section:")
         
-        # Add CUT SHEETS title page
+        # Add CUT SHEETS title page with main bookmark
         cut_sheets_title_path = os.path.join(self.title_pages_dir, "title_CUT_SHEETS.pdf")
-        self.add_pdf_to_writer(writer, cut_sheets_title_path, "CUT SHEETS title page")
+        success, start_page, end_page, cut_sheets_bookmark = self.add_pdf_to_writer(
+            writer, cut_sheets_title_path, "CUT SHEETS title page",
+            add_bookmark=True, bookmark_title="CUT SHEETS"
+        )
         
         # Add all CS*.pdf files
         cs_pdfs = self.get_cs_pdf_files()
         print(f"  Adding {len(cs_pdfs)} cut sheet files:")
         
         for cs_pdf in cs_pdfs:
-            self.add_pdf_to_writer(writer, cs_pdf, f"Cut sheet: {os.path.basename(cs_pdf)}")
+            # Create clean bookmark title from filename
+            filename = os.path.basename(cs_pdf)
+            clean_title = os.path.splitext(filename)[0]
+            # Remove "CS_" prefix and replace underscores with spaces
+            if clean_title.startswith('CS_'):
+                clean_title = clean_title[3:].replace('_', ' ')
+            
+            self.add_pdf_to_writer(
+                writer, cs_pdf, f"Cut sheet: {filename}",
+                add_bookmark=True, bookmark_title=clean_title,
+                bookmark_parent=cut_sheets_bookmark
+            )
         
         # Write final PDF
         print(f"\nWriting final PDF: {output_filename}")
@@ -209,37 +253,31 @@ class FinalPDFAssembler:
         return manifest
 
 def main():
-    """Main function to create the final PDF"""
+    """Main function to test the converter"""
     docs_path = r"C:\Users\jacob\Claude\python-docx\documents\CS_Air_Handler_Light_Kit"
     
-    # Create final PDF assembler
-    assembler = FinalPDFAssembler(docs_path)
+    # Load tag mapping
+    with open('tag_mapping_enhanced.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    tag_mapping = data['tag_mapping']
     
-    # Create manifest
-    manifest = assembler.create_file_manifest()
+    # Create converter
+    converter = DocumentPDFConverter(docs_path)
     
-    # Save manifest
-    with open('final_pdf_manifest.json', 'w', encoding='utf-8') as f:
-        json.dump(manifest, f, indent=2, ensure_ascii=False)
+    # Convert all documents
+    pdf_mapping = converter.convert_all_documents(tag_mapping)
     
-    print("File manifest created: final_pdf_manifest.json")
-    print("\nManifest Summary:")
-    print(f"  Total tags: {manifest['summary']['total_tags']}")
-    print(f"  Included files: {manifest['summary']['total_included_files']}")
-    print(f"  Excluded files: {manifest['summary']['total_excluded_files']}")
-    print(f"  Cut sheets: {manifest['summary']['cut_sheets_count']}")
+    # Save PDF mapping
+    with open('pdf_conversion_mapping.json', 'w', encoding='utf-8') as f:
+        json.dump(pdf_mapping, f, indent=2, ensure_ascii=False)
     
-    # Show excluded files
-    if manifest['summary']['total_excluded_files'] > 0:
-        print("\nExcluded files (no PDF conversion available):")
-        for tag, excluded_files in manifest['excluded_files'].items():
-            if excluded_files:
-                print(f"  {tag}: {', '.join(excluded_files)}")
+    # Print summary
+    converter.print_conversion_summary()
     
-    # Create final PDF
-    final_pdf = assembler.create_final_pdf()
+    print(f"\nPDF mapping saved to: pdf_conversion_mapping.json")
+    print(f"Converted PDFs saved to: {converter.output_dir}/")
     
-    return assembler, final_pdf
+    return converter
 
 if __name__ == "__main__":
-    assembler, final_pdf = main()
+    converter = main()
