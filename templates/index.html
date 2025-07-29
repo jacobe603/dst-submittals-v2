@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DST Submittals Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            margin-bottom: 40px;
+        }
+
+        .drop-zone {
+            border: 3px dashed #3498db;
+            border-radius: 10px;
+            padding: 60px 20px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .drop-zone.dragover {
+            border-color: #2ecc71;
+            background: #e8f5e9;
+        }
+
+        .drop-zone i {
+            font-size: 4em;
+            color: #3498db;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .drop-zone p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: #3498db;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+
+        .upload-btn:hover {
+            background: #2980b9;
+        }
+
+        .options-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .option-group {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .option-group h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .process-btn {
+            background: #27ae60;
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.2em;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        .process-btn:hover {
+            background: #219a52;
+        }
+
+        .process-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .progress-section {
+            display: none;
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .status-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .file-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .download-link {
+            background: #17a2b8;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .download-link:hover {
+            background: #138496;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-file-pdf"></i> DST Submittals Generator</h1>
+            <p>Upload your HVAC documents and generate professional submittal PDFs</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-section">
+                <div class="drop-zone" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>Drag & Drop Files Here</h3>
+                    <p>Or click to browse files (.doc, .docx, .pdf, .zip)</p>
+                    <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-folder-open"></i> Browse Files
+                    </button>
+                </div>
+                <input type="file" id="fileInput" class="file-input" multiple accept=".doc,.docx,.pdf,.zip">
+                
+                <div id="fileList" class="file-list" style="display: none;">
+                    <h4><i class="fas fa-list"></i> Selected Files:</h4>
+                    <div id="fileItems"></div>
+                </div>
+            </div>
+
+            <div class="options-section">
+                <h3><i class="fas fa-cogs"></i> Processing Options</h3>
+                <div class="options-grid">
+                    <div class="option-group">
+                        <h4>Output Settings</h4>
+                        <div class="form-group">
+                            <label for="outputFilename">Output Filename (optional)</label>
+                            <input type="text" id="outputFilename" placeholder="Custom_Submittal.pdf">
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="noPricingFilter">
+                            <label for="noPricingFilter">Include pricing pages (disable price filter)</label>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <h4>Conversion Settings</h4>
+                        <div class="form-group">
+                            <label for="officeToPdfPath">OfficeToPDF Path</label>
+                            <input type="text" id="officeToPdfPath" placeholder="C:\Tools\OfficeToPDF.exe">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxWorkers">Max Workers</label>
+                            <input type="number" id="maxWorkers" min="1" max="8" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="conversionTimeout">Conversion Timeout (seconds)</label>
+                            <input type="number" id="conversionTimeout" min="30" max="600" value="120">
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <h4>Directory Settings</h4>
+                        <div class="form-group">
+                            <label for="convertedPdfsDir">Converted PDFs Directory</label>
+                            <input type="text" id="convertedPdfsDir" placeholder="converted_pdfs">
+                        </div>
+                        <div class="form-group">
+                            <label for="titlePagesDir">Title Pages Directory</label>
+                            <input type="text" id="titlePagesDir" placeholder="title_pages">
+                        </div>
+                        <div class="form-group">
+                            <label for="tagMappingFile">Tag Mapping File</label>
+                            <input type="text" id="tagMappingFile" placeholder="tag_mapping_enhanced.json">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="processBtn" class="process-btn" disabled>
+                <i class="fas fa-play"></i> Generate Submittal PDF
+            </button>
+
+            <div id="progressSection" class="progress-section">
+                <h4>Processing...</h4>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+
+        // Drag and drop functionality
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const fileItems = document.getElementById('fileItems');
+        const processBtn = document.getElementById('processBtn');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop zone when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        // Handle dropped files
+        dropZone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFileSelect, false);
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropZone.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+            displayFiles();
+            processBtn.disabled = selectedFiles.length === 0;
+        }
+
+        function displayFiles() {
+            fileItems.innerHTML = '';
+            if (selectedFiles.length > 0) {
+                fileList.style.display = 'block';
+                selectedFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <span><i class="fas fa-file"></i> ${file.name} (${formatFileSize(file.size)})</span>
+                        <button onclick="removeFile(${index})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    fileItems.appendChild(fileItem);
+                });
+            } else {
+                fileList.style.display = 'none';
+            }
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displayFiles();
+            processBtn.disabled = selectedFiles.length === 0;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Process files
+        processBtn.addEventListener('click', processFiles);
+
+        async function processFiles() {
+            if (selectedFiles.length === 0) return;
+
+            const progressSection = document.getElementById('progressSection');
+            const progressFill = document.getElementById('progressFill');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // Show progress section
+            progressSection.style.display = 'block';
+            processBtn.disabled = true;
+            progressFill.style.width = '10%';
+            statusMessage.innerHTML = 'Uploading files...';
+            statusMessage.className = 'status-message';
+
+            try {
+                const formData = new FormData();
+                
+                // Add files
+                selectedFiles.forEach(file => {
+                    formData.append('files', file);
+                });
+
+                // Add options
+                formData.append('output_filename', document.getElementById('outputFilename').value);
+                formData.append('no_pricing_filter', document.getElementById('noPricingFilter').checked);
+                formData.append('DST_OFFICETOPDF_PATH', document.getElementById('officeToPdfPath').value);
+                formData.append('DST_MAX_WORKERS', document.getElementById('maxWorkers').value);
+                formData.append('DST_CONVERSION_TIMEOUT', document.getElementById('conversionTimeout').value);
+                formData.append('DST_CONVERTED_PDFS_DIR', document.getElementById('convertedPdfsDir').value);
+                formData.append('DST_TITLE_PAGES_DIR', document.getElementById('titlePagesDir').value);
+                formData.append('DST_TAG_MAPPING_FILE', document.getElementById('tagMappingFile').value);
+
+                progressFill.style.width = '30%';
+                statusMessage.innerHTML = 'Processing documents...';
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                console.log('Processing result:', result);
+                console.log('Output file:', result.output_file);
+
+                progressFill.style.width = '100%';
+
+                if (result.success) {
+                    const downloadUrl = `/download/${result.output_file}`;
+                    console.log('Download URL:', downloadUrl);
+                    
+                    statusMessage.innerHTML = `
+                        <div class="status-success">
+                            <i class="fas fa-check-circle"></i> 
+                            Processing completed successfully! Found ${result.tags_found} equipment tags.
+                            <br><br>
+                            <a href="${downloadUrl}" class="download-link">
+                                <i class="fas fa-download"></i> Download ${result.output_file || 'Generated PDF'}
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    statusMessage.innerHTML = `
+                        <div class="status-error">
+                            <i class="fas fa-exclamation-circle"></i> 
+                            Processing failed: ${result.error}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                progressFill.style.width = '100%';
+                statusMessage.innerHTML = `
+                    <div class="status-error">
+                        <i class="fas fa-exclamation-circle"></i> 
+                        Error: ${error.message}
+                    </div>
+                `;
+            } finally {
+                processBtn.disabled = false;
+            }
+        }
+
+        // Load application status on page load
+        async function loadStatus() {
+            try {
+                const response = await fetch('/status');
+                const status = await response.json();
+                
+                // Pre-fill form fields with current configuration
+                if (status.officetopdf_path) {
+                    document.getElementById('officeToPdfPath').value = status.officetopdf_path;
+                }
+                document.getElementById('maxWorkers').value = status.max_workers || 1;
+                document.getElementById('conversionTimeout').value = status.conversion_timeout || 120;
+                
+            } catch (error) {
+                console.warn('Could not load application status:', error);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadStatus);
+    </script>
+</body>
+</html>

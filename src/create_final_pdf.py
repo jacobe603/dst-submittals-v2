@@ -9,31 +9,38 @@ import glob
 from datetime import datetime
 from typing import Dict, List, Optional
 from pypdf import PdfReader, PdfWriter
-from title_page_generator import TitlePageGenerator
+try:
+    from .title_page_generator import TitlePageGenerator
+    from .config import get_config
+except ImportError:
+    # Handle case when running as standalone script
+    from title_page_generator import TitlePageGenerator
+    from config import get_config
 
 class FinalPDFAssembler:
-    def __init__(self, docs_path: str, converted_pdfs_dir: str = "converted_pdfs", 
-                 title_pages_dir: str = "title_pages"):
+    def __init__(self, docs_path: str, converted_pdfs_dir: str = None, 
+                 title_pages_dir: str = None):
+        self.config = get_config()
         self.docs_path = docs_path
-        self.converted_pdfs_dir = converted_pdfs_dir
-        self.title_pages_dir = title_pages_dir
+        self.converted_pdfs_dir = converted_pdfs_dir or self.config.converted_pdfs_dir
+        self.title_pages_dir = title_pages_dir or self.config.title_pages_dir
         self.load_mappings()
         
     def load_mappings(self):
         """Load tag mapping and PDF conversion mapping"""
         # Load tag mapping
-        with open('tag_mapping_enhanced.json', 'r', encoding='utf-8') as f:
+        with open(self.config.tag_mapping_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
         self.tag_mapping = data['tag_mapping']
         self.tag_groups = data['tag_groups']
         
         # Load PDF conversion mapping
         try:
-            with open('pdf_conversion_mapping.json', 'r', encoding='utf-8') as f:
+            with open(self.config.pdf_conversion_mapping_file, 'r', encoding='utf-8') as f:
                 self.pdf_mapping = json.load(f)
         except FileNotFoundError:
             self.pdf_mapping = {}
-            print("Warning: PDF conversion mapping not found")
+            print(f"Warning: PDF conversion mapping not found: {self.config.pdf_conversion_mapping_file}")
     
     def get_cs_pdf_files(self) -> List[str]:
         """Get all CS*.pdf files for cut sheets section"""
@@ -148,6 +155,9 @@ class FinalPDFAssembler:
             for filename in ordered_files:
                 # Check if we have a converted PDF for this file
                 converted_pdf_path = self.pdf_mapping.get(filename)
+                print(f"    Checking {filename}:")
+                print(f"      Mapped to: {converted_pdf_path}")
+                print(f"      File exists: {os.path.exists(converted_pdf_path) if converted_pdf_path else False}")
                 
                 if converted_pdf_path and os.path.exists(converted_pdf_path):
                     # Create a clean bookmark title from filename
@@ -157,13 +167,21 @@ class FinalPDFAssembler:
                     if clean_title.split()[0].isdigit():
                         clean_title = ' '.join(clean_title.split()[1:])
                     
+                    print(f"      [ADD] Adding to PDF: {clean_title}")
                     self.add_pdf_to_writer(
                         writer, converted_pdf_path, filename,
                         add_bookmark=True, bookmark_title=clean_title, 
                         bookmark_parent=tag_bookmark
                     )
                 else:
-                    print(f"  [SKIP] No PDF available for {filename}")
+                    if not converted_pdf_path:
+                        print(f"      [SKIP] No mapping found for {filename}")
+                    else:
+                        print(f"      [SKIP] File not found: {converted_pdf_path}")
+                        
+                # Debug: Show all available mappings
+                if not converted_pdf_path:
+                    print(f"      Available mappings: {list(self.pdf_mapping.keys())}")
             
             print()
         

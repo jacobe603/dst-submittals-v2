@@ -5,3 +5,7 @@ docx2pdf>=0.1.8
 reportlab>=4.0.0
 pywin32>=306
 Pillow
+
+# Web Interface Dependencies
+Flask>=2.3.0
+Werkzeug>=2.3.0
