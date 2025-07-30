@@ -154,8 +154,72 @@ Check Word automation functionality by examining conversion logs and testing ind
 - Output PDFs created in project root
 - Configuration module: `src/config.py` handles environment variables and defaults
 
+## Web Interface
+
+### 🌐 **Core Functionality**
+- **Drag & Drop Upload**: Support for individual files (.doc, .docx, .pdf) and ZIP archives
+- **All CLI Options**: Complete web form interface for all command-line switches and environment variables
+- **Network Access**: Can be accessed from other computers on the network using `start_web_interface_network.bat`
+- **File Download**: Direct download of generated PDFs with proper filename handling
+
+### ⚡ **Real-Time Progress Reporting**
+- **Live Updates**: Server-Sent Events (SSE) for real-time progress streaming without page refresh
+- **Multi-Phase Tracking**: Detailed progress through 5 processing phases:
+  1. **Setup** (0-5%): Environment configuration and validation
+  2. **Tag Extraction** (10-20%): Document scanning and equipment identification  
+  3. **PDF Conversion** (25-60%): File-by-file conversion with individual success/error tracking
+  4. **Title Generation** (65-75%): Creating title pages for each equipment group
+  5. **PDF Assembly** (80-90%): Combining documents with bookmarks and navigation
+- **Detailed Logging**: Real-time activity log with timestamps and file-specific details
+- **Error Reporting**: Individual file errors with context and remediation suggestions
+- **Completion Summary**: Processing time, tags found, equipment groups created
+
+### 📊 **Enhanced User Experience**
+- **Professional Interface**: Modern responsive design with intuitive workflow
+- **Background Processing**: Non-blocking operations with immediate response
+- **Connection Management**: Automatic SSE connection handling with keepalive
+- **File Progress Tracking**: Shows X/Y files processed during conversion phases
+- **Correlation ID Tracking**: Each operation tracked with unique identifier for debugging
+
+### 🚀 **Usage**
+
+**Local Access:**
+```bash
+# Basic startup
+start_web_interface.bat
+# Or manually
+python web_interface.py
+
+# Access at: http://127.0.0.1:5000
+```
+
+**Network Access:**
+```bash
+# Network-enabled startup  
+start_web_interface_network.bat
+# Or manually
+python web_interface.py --host 0.0.0.0 --port 5000
+
+# Access from other computers: http://YOUR_IP_ADDRESS:5000
+```
+
+**Workflow:**
+1. Drag and drop files or browse to select documents/ZIP files
+2. Configure processing options through web form (all CLI options available)
+3. Click "Generate Submittal PDF" to start processing
+4. Watch real-time progress updates with detailed logging
+5. Download generated PDF when complete
+
+### 🔧 **Technical Architecture**
+- **Flask Backend**: Handles file upload, processing coordination, and SSE streaming
+- **Background Threading**: Processing runs in separate thread for responsiveness
+- **ProgressManager**: Centralized progress tracking and event broadcasting
+- **EventSource Frontend**: JavaScript EventSource for real-time SSE consumption
+- **Memory Management**: Proper cleanup of resources, temporary files, and connections
+
 ## Entry Points
 
 **Main CLI:** `dst_submittals.py` - Primary command-line interface
+**Web Interface:** `web_interface.py` - Flask-based web server with real-time progress
 **Setup Script:** `setup.py` provides console script entry point
 **Module Import:** Components can be imported individually from `src/` directory

@@ -12,11 +12,14 @@ import json
 import shutil
 import tempfile
 import zipfile
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
+from queue import Queue
 
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session, Response
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 
@@ -32,6 +35,142 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dst-submittals-dev-key')
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 
 logger = get_logger('web_interface')
+
+class ProgressManager:
+    """Manages real-time progress updates for processing operations"""
+    
+    def __init__(self):
+        self.progress_data = {}
+        self.clients = {}
+        
+    def start_operation(self, correlation_id: str) -> None:
+        """Initialize progress tracking for an operation"""
+        self.progress_data[correlation_id] = {
+            'step': 'initializing',
+            'progress': 0,
+            'message': 'Starting operation...',
+            'details': [],
+            'start_time': time.time(),
+            'current_file': None,
+            'files_processed': 0,
+            'total_files': 0,
+            'errors': []
+        }
+        self.clients[correlation_id] = Queue()
+        
+    def update_progress(self, correlation_id: str, step: str, progress: int, 
+                       message: str, details: str = None, current_file: str = None) -> None:
+        """Update progress for an operation"""
+        if correlation_id not in self.progress_data:
+            return
+            
+        data = self.progress_data[correlation_id]
+        data.update({
+            'step': step,
+            'progress': min(100, max(0, progress)),
+            'message': message,
+            'timestamp': time.time()
+        })
+        
+        if details:
+            data['details'].append({
+                'timestamp': time.time(),
+                'message': details
+            })
+            
+        if current_file:
+            data['current_file'] = current_file
+            
+        # Send update to client
+        if correlation_id in self.clients:
+            try:
+                self.clients[correlation_id].put({
+                    'type': 'progress',
+                    'data': data.copy()
+                }, block=False)
+            except:
+                pass  # Client might have disconnected
+                
+    def update_file_progress(self, correlation_id: str, files_processed: int, 
+                           total_files: int, current_file: str = None) -> None:
+        """Update file processing progress"""
+        if correlation_id not in self.progress_data:
+            return
+            
+        self.progress_data[correlation_id].update({
+            'files_processed': files_processed,
+            'total_files': total_files,
+            'current_file': current_file
+        })
+        
+    def add_error(self, correlation_id: str, error_message: str, file_name: str = None) -> None:
+        """Add an error to the progress tracking"""
+        if correlation_id not in self.progress_data:
+            return
+            
+        error_info = {
+            'timestamp': time.time(),
+            'message': error_message,
+            'file': file_name
+        }
+        
+        self.progress_data[correlation_id]['errors'].append(error_info)
+        
+        # Send error update to client
+        if correlation_id in self.clients:
+            try:
+                self.clients[correlation_id].put({
+                    'type': 'error',
+                    'data': error_info
+                }, block=False)
+            except:
+                pass
+                
+    def complete_operation(self, correlation_id: str, success: bool, 
+                          final_message: str, result_data: Dict = None) -> None:
+        """Mark operation as complete"""
+        if correlation_id not in self.progress_data:
+            return
+            
+        data = self.progress_data[correlation_id]
+        data.update({
+            'step': 'completed' if success else 'failed',
+            'progress': 100 if success else data.get('progress', 0),
+            'message': final_message,
+            'completed': True,
+            'success': success,
+            'end_time': time.time(),
+            'duration': time.time() - data['start_time']
+        })
+        
+        if result_data:
+            data['result'] = result_data
+            
+        # Send completion update to client
+        if correlation_id in self.clients:
+            try:
+                self.clients[correlation_id].put({
+                    'type': 'complete',
+                    'data': data.copy()
+                }, block=False)
+            except:
+                pass
+                
+    def get_client_queue(self, correlation_id: str) -> Queue:
+        """Get the queue for a specific client"""
+        if correlation_id not in self.clients:
+            self.clients[correlation_id] = Queue()
+        return self.clients[correlation_id]
+        
+    def cleanup_operation(self, correlation_id: str) -> None:
+        """Clean up resources for completed operation"""
+        if correlation_id in self.progress_data:
+            del self.progress_data[correlation_id]
+        if correlation_id in self.clients:
+            del self.clients[correlation_id]
+
+# Global progress manager
+progress_manager = ProgressManager()
 
 # Configuration for upload
 UPLOAD_FOLDER = 'uploads'
@@ -60,6 +199,9 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
     """Run the DST submittals processing with given options"""
     correlation_id = set_correlation_id()
     
+    # Initialize progress tracking
+    progress_manager.start_operation(correlation_id)
+    
     try:
         # Import processing modules using the correct names from main script
         from tag_extractor import TagExtractor
@@ -69,6 +211,10 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
         from create_final_pdf import FinalPDFAssembler
         
         # Set environment variables based on options
+        progress_manager.update_progress(correlation_id, 'setup', 5, 
+                                       'Configuring processing environment...',
+                                       'Setting up environment variables and options')
+        
         if options.get('no_pricing_filter'):
             os.environ['DST_NO_PRICING_FILTER'] = 'true'
         
@@ -96,14 +242,26 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
         logger.info(f"Starting DST processing for: {documents_path}")
         
         # Step 1: Extract tags
+        progress_manager.update_progress(correlation_id, 'tag_extraction', 10, 
+                                       'Scanning documents for equipment tags...',
+                                       f'Analyzing documents in {documents_path}')
+        
         extractor = TagExtractor(documents_path)
         tag_mapping = extractor.extract_all_tags()
+        
+        progress_manager.update_progress(correlation_id, 'tag_extraction', 15, 
+                                       'Processing tag mappings...',
+                                       f'Found {len([t for t in tag_mapping.values() if t])} tagged documents')
         
         # Enhance tag mapping
         enhanced_mapping = enhance_tag_mapping(tag_mapping, documents_path)
         
         tag_count = len([t for t in tag_mapping.values() if t])
         equipment_count = len(enhanced_mapping.get('tag_groups', {}))
+        
+        progress_manager.update_progress(correlation_id, 'tag_extraction', 20, 
+                                       'Organizing equipment groups...',
+                                       f'Identified {equipment_count} equipment groups: {list(enhanced_mapping.get("tag_groups", {}).keys())}')
         
         logger.info(f"Tag mapping: {tag_mapping}")
         logger.info(f"Enhanced mapping tag_groups: {enhanced_mapping.get('tag_groups', {})}")
@@ -117,6 +275,8 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
             json.dump(enhanced_mapping, f, indent=2, ensure_ascii=False)
         
         if tag_count == 0:
+            progress_manager.complete_operation(correlation_id, False, 
+                                              'No equipment tags found in documents')
             return {
                 'success': False,
                 'error': 'No equipment tags found in documents',
@@ -124,24 +284,53 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
             }
         
         # Step 2: Convert to PDF
+        progress_manager.update_progress(correlation_id, 'pdf_conversion', 25, 
+                                       'Converting documents to PDF...',
+                                       f'Starting conversion of {len(tag_mapping)} documents')
+        
+        # Update file progress tracking
+        progress_manager.update_file_progress(correlation_id, 0, len(tag_mapping))
+        
         converter = DocumentPDFConverter(documents_path)
         pdf_mapping = converter.convert_all_documents(tag_mapping)
         
-        logger.info(f"PDF conversion completed. Mapping: {pdf_mapping}")
-        logger.info(f"Total conversions: {len([p for p in pdf_mapping.values() if p])}")
+        # Update progress with conversion results
+        successful_conversions = len([p for p in pdf_mapping.values() if p])
+        progress_manager.update_progress(correlation_id, 'pdf_conversion', 60, 
+                                       'PDF conversion completed',
+                                       f'Successfully converted {successful_conversions}/{len(tag_mapping)} documents')
         
-        # Verify converted files exist
+        logger.info(f"PDF conversion completed. Mapping: {pdf_mapping}")
+        logger.info(f"Total conversions: {successful_conversions}")
+        
+        # Verify converted files exist and report issues
+        conversion_errors = []
         for original_file, converted_path in pdf_mapping.items():
             if converted_path:
                 exists = os.path.exists(converted_path)
                 logger.info(f"Converted file: {original_file} -> {converted_path} (exists: {exists})")
+                if not exists:
+                    error_msg = f"Converted file missing: {original_file}"
+                    conversion_errors.append(error_msg)
+                    progress_manager.add_error(correlation_id, error_msg, original_file)
             else:
-                logger.warning(f"No conversion for: {original_file}")
+                error_msg = f"Conversion failed: {original_file}"
+                conversion_errors.append(error_msg)
+                progress_manager.add_error(correlation_id, error_msg, original_file)
+                logger.warning(error_msg)
         
         # Step 3: Generate title pages
         tags = list(enhanced_mapping.get('tag_groups', {}).keys())
+        progress_manager.update_progress(correlation_id, 'title_generation', 65, 
+                                       'Generating title pages...',
+                                       f'Creating title pages for {len(tags)} equipment groups')
+        
         title_generator = TitlePageGenerator()
         title_pages = title_generator.create_all_title_pages(tags)
+        
+        progress_manager.update_progress(correlation_id, 'title_generation', 75, 
+                                       'Title pages completed',
+                                       f'Generated {len(title_pages)} title pages')
         
         # Save PDF mapping to file (like main script does)
         
@@ -150,6 +339,10 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
             json.dump(pdf_mapping, f, indent=2, ensure_ascii=False)
         
         # Step 4: Assemble final PDF  
+        progress_manager.update_progress(correlation_id, 'pdf_assembly', 80, 
+                                       'Assembling final PDF document...',
+                                       'Combining all documents and title pages')
+        
         assembler = FinalPDFAssembler(documents_path)
         
         # Debug: Check what the assembler loaded
@@ -157,6 +350,10 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
         logger.info(f"Assembler tag groups: {list(assembler.tag_groups.keys())}")
         
         final_pdf_path = assembler.create_final_pdf(output_filename)
+        
+        progress_manager.update_progress(correlation_id, 'pdf_assembly', 90, 
+                                       'PDF assembly completed',
+                                       f'Final document created: {output_filename}')
         
         # Ensure the generated PDF is in our output folder
         output_path = os.path.join(OUTPUT_FOLDER, output_filename)
@@ -204,6 +401,10 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
                 }
             }
         
+        progress_manager.update_progress(correlation_id, 'completed', 100, 
+                                       'Processing completed successfully!',
+                                       f'Generated {output_filename} with {equipment_count} equipment groups')
+        
         result = {
             'success': True,
             'output_file': output_filename,
@@ -213,11 +414,21 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
             'correlation_id': correlation_id
         }
         
+        # Mark operation as complete
+        progress_manager.complete_operation(correlation_id, True, 
+                                          'DST Submittal PDF generated successfully!', 
+                                          result)
+        
         logger.info(f"Returning success response: {result}")
         return result
         
     except Exception as e:
-        logger.error(f"Processing failed: {e}")
+        error_msg = f"Processing failed: {str(e)}"
+        logger.error(error_msg)
+        
+        # Mark operation as failed
+        progress_manager.complete_operation(correlation_id, False, error_msg)
+        
         return {
             'success': False,
             'error': str(e),
@@ -228,6 +439,36 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any]) -> Dict[str
 def index():
     """Main page with upload interface"""
     return render_template('index.html')
+
+@app.route('/progress/<correlation_id>')
+def progress_stream(correlation_id):
+    """Server-Sent Events endpoint for real-time progress updates"""
+    def generate():
+        client_queue = progress_manager.get_client_queue(correlation_id)
+        
+        # Send initial connection event
+        yield f"data: {json.dumps({'type': 'connected', 'correlation_id': correlation_id})}\n\n"
+        
+        # Keep connection alive and send updates
+        while True:
+            try:
+                # Wait for update with timeout
+                update = client_queue.get(timeout=30)
+                yield f"data: {json.dumps(update)}\n\n"
+                
+                # If operation completed, close connection after a delay
+                if update.get('type') == 'complete':
+                    time.sleep(2)  # Give client time to process final update
+                    break
+                    
+            except:
+                # Timeout - send keepalive
+                yield f"data: {json.dumps({'type': 'keepalive', 'timestamp': time.time()})}\n\n"
+    
+    return Response(generate(), mimetype='text/event-stream',
+                   headers={'Cache-Control': 'no-cache',
+                           'Connection': 'keep-alive',
+                           'Access-Control-Allow-Origin': '*'})
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
@@ -294,23 +535,39 @@ def upload_files():
                             'error': f'Failed to extract zip file: {filename}'
                         })
         
-        # Run DST processing
-        result = run_dst_processing(temp_dir, options)
+        # Start DST processing in background thread
+        def process_in_background():
+            try:
+                run_dst_processing(temp_dir, options)
+            finally:
+                # Clean up temporary directory
+                if temp_dir and os.path.exists(temp_dir):
+                    try:
+                        shutil.rmtree(temp_dir)
+                    except Exception as cleanup_error:
+                        logger.warning(f"Failed to cleanup temp directory {temp_dir}: {cleanup_error}")
         
-        return jsonify(result)
+        # Get correlation ID for this request
+        correlation_id = set_correlation_id()
+        
+        # Start processing in background
+        processing_thread = threading.Thread(target=process_in_background)
+        processing_thread.daemon = True
+        processing_thread.start()
+        
+        # Return immediately with correlation ID for progress tracking
+        return jsonify({
+            'success': True,
+            'correlation_id': correlation_id,
+            'message': 'Processing started',
+            'progress_url': f'/progress/{correlation_id}'
+        })
         
     except RequestEntityTooLarge:
         return jsonify({'success': False, 'error': 'File too large (max 500MB)'})
     except Exception as e:
         logger.error(f"Upload failed: {e}")
         return jsonify({'success': False, 'error': str(e)})
-    finally:
-        # Clean up temporary directory
-        if temp_dir and os.path.exists(temp_dir):
-            try:
-                shutil.rmtree(temp_dir)
-            except Exception as cleanup_error:
-                logger.warning(f"Failed to cleanup temp directory {temp_dir}: {cleanup_error}")
 
 @app.route('/download/<filename>')
 def download_file(filename):

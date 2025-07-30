@@ -255,6 +255,41 @@
         .download-link:hover {
             background: #138496;
         }
+
+        .progress-details {
+            font-size: 0.9em;
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .recent-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8em;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .detail-line {
+            margin: 2px 0;
+            color: #555;
+        }
+
+        .completion-details {
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .completion-details div {
+            margin: 5px 0;
+        }
+
+        .status-info {
+            color: #333;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -439,6 +474,10 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        // Global variables for progress tracking
+        let currentEventSource = null;
+        let currentCorrelationId = null;
+
         // Process files
         processBtn.addEventListener('click', processFiles);
 
@@ -449,10 +488,10 @@
             const progressFill = document.getElementById('progressFill');
             const statusMessage = document.getElementById('statusMessage');
 
-            // Show progress section
+            // Show progress section and reset
             progressSection.style.display = 'block';
             processBtn.disabled = true;
-            progressFill.style.width = '10%';
+            progressFill.style.width = '0%';
             statusMessage.innerHTML = 'Uploading files...';
             statusMessage.className = 'status-message';
 
@@ -474,54 +513,175 @@
                 formData.append('DST_TITLE_PAGES_DIR', document.getElementById('titlePagesDir').value);
                 formData.append('DST_TAG_MAPPING_FILE', document.getElementById('tagMappingFile').value);
 
-                progressFill.style.width = '30%';
-                statusMessage.innerHTML = 'Processing documents...';
-
+                // Start upload
                 const response = await fetch('/upload', {
                     method: 'POST',
                     body: formData
                 });
 
                 const result = await response.json();
-                console.log('Processing result:', result);
-                console.log('Output file:', result.output_file);
+                console.log('Upload result:', result);
 
-                progressFill.style.width = '100%';
-
-                if (result.success) {
-                    const downloadUrl = `/download/${result.output_file}`;
-                    console.log('Download URL:', downloadUrl);
-                    
-                    statusMessage.innerHTML = `
-                        <div class="status-success">
-                            <i class="fas fa-check-circle"></i> 
-                            Processing completed successfully! Found ${result.tags_found} equipment tags.
-                            <br><br>
-                            <a href="${downloadUrl}" class="download-link">
-                                <i class="fas fa-download"></i> Download ${result.output_file || 'Generated PDF'}
-                            </a>
-                        </div>
-                    `;
+                if (result.success && result.correlation_id) {
+                    // Start real-time progress tracking
+                    currentCorrelationId = result.correlation_id;
+                    startProgressTracking(result.correlation_id);
                 } else {
-                    statusMessage.innerHTML = `
-                        <div class="status-error">
-                            <i class="fas fa-exclamation-circle"></i> 
-                            Processing failed: ${result.error}
-                        </div>
-                    `;
+                    throw new Error(result.error || 'Upload failed');
                 }
 
             } catch (error) {
+                console.error('Upload error:', error);
                 progressFill.style.width = '100%';
                 statusMessage.innerHTML = `
                     <div class="status-error">
                         <i class="fas fa-exclamation-circle"></i> 
-                        Error: ${error.message}
+                        Upload failed: ${error.message}
                     </div>
                 `;
-            } finally {
                 processBtn.disabled = false;
             }
+        }
+
+        function startProgressTracking(correlationId) {
+            // Close existing EventSource if any
+            if (currentEventSource) {
+                currentEventSource.close();
+            }
+
+            const progressFill = document.getElementById('progressFill');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // Create new EventSource for progress updates
+            currentEventSource = new EventSource(`/progress/${correlationId}`);
+
+            currentEventSource.onopen = function(event) {
+                console.log('Progress stream connected');
+                statusMessage.innerHTML = 'Connected to progress stream...';
+            };
+
+            currentEventSource.onmessage = function(event) {
+                try {
+                    const update = JSON.parse(event.data);
+                    console.log('Progress update:', update);
+
+                    if (update.type === 'progress') {
+                        updateProgress(update.data);
+                    } else if (update.type === 'error') {
+                        addErrorToDisplay(update.data);
+                    } else if (update.type === 'complete') {
+                        handleCompletion(update.data);
+                    }
+                } catch (error) {
+                    console.error('Error parsing progress update:', error);
+                }
+            };
+
+            currentEventSource.onerror = function(event) {
+                console.error('EventSource error:', event);
+                if (currentEventSource.readyState === EventSource.CLOSED) {
+                    console.log('Progress stream closed');
+                }
+            };
+        }
+
+        function updateProgress(data) {
+            const progressFill = document.getElementById('progressFill');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // Update progress bar
+            progressFill.style.width = `${data.progress}%`;
+
+            // Update status message with detailed information
+            let statusHtml = `
+                <div class="status-info">
+                    <strong>${data.message}</strong>
+                    <div class="progress-details">
+                        Step: ${data.step} (${data.progress}%)
+            `;
+
+            if (data.current_file) {
+                statusHtml += `<br>Processing: ${data.current_file}`;
+            }
+
+            if (data.files_processed && data.total_files) {
+                statusHtml += `<br>Files: ${data.files_processed}/${data.total_files}`;
+            }
+
+            // Show recent details
+            if (data.details && data.details.length > 0) {
+                const recentDetails = data.details.slice(-3); // Show last 3 details
+                statusHtml += '<div class="recent-details">';
+                recentDetails.forEach(detail => {
+                    const time = new Date(detail.timestamp * 1000).toLocaleTimeString();
+                    statusHtml += `<div class="detail-line">[${time}] ${detail.message}</div>`;
+                });
+                statusHtml += '</div>';
+            }
+
+            statusHtml += '</div></div>';
+            statusMessage.innerHTML = statusHtml;
+        }
+
+        function addErrorToDisplay(errorData) {
+            const statusMessage = document.getElementById('statusMessage');
+            const currentContent = statusMessage.innerHTML;
+            
+            const errorHtml = `
+                <div class="status-error">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Error: ${errorData.message}
+                    ${errorData.file ? ` (File: ${errorData.file})` : ''}
+                </div>
+            `;
+            
+            statusMessage.innerHTML = currentContent + errorHtml;
+        }
+
+        function handleCompletion(data) {
+            const progressFill = document.getElementById('progressFill');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            // Close the EventSource
+            if (currentEventSource) {
+                currentEventSource.close();
+                currentEventSource = null;
+            }
+
+            if (data.success) {
+                const result = data.result;
+                const downloadUrl = `/download/${result.output_file}`;
+                
+                statusMessage.innerHTML = `
+                    <div class="status-success">
+                        <i class="fas fa-check-circle"></i> 
+                        Processing completed successfully!
+                        <div class="completion-details">
+                            <div>Found ${result.tags_found} equipment tags</div>
+                            <div>Created ${result.equipment_groups} equipment groups</div>
+                            <div>Duration: ${Math.round(data.duration)}s</div>
+                        </div>
+                        <br>
+                        <a href="${downloadUrl}" class="download-link">
+                            <i class="fas fa-download"></i> Download ${result.output_file}
+                        </a>
+                    </div>
+                `;
+            } else {
+                statusMessage.innerHTML = `
+                    <div class="status-error">
+                        <i class="fas fa-exclamation-circle"></i> 
+                        Processing failed: ${data.message}
+                        ${data.duration ? `<br>Duration: ${Math.round(data.duration)}s` : ''}
+                    </div>
+                `;
+            }
+
+            // Re-enable the process button
+            processBtn.disabled = false;
+
+            // Clean up
+            currentCorrelationId = null;
         }
 
         // Load application status on page load
