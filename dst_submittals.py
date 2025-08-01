@@ -75,7 +75,8 @@ def main():
         if args.verbose:
             print("Step 1: Extracting tags from documents...")
         
-        extractor = TagExtractor(args.documents_path)
+        # Use filename-based extraction for better performance with tagged files
+        extractor = TagExtractor(args.documents_path, use_filename_tags=True)
         tag_mapping = extractor.extract_all_tags()
         
         # Call the function directly
@@ -119,16 +120,16 @@ def main():
         final_pdf = assembler.create_final_pdf(args.output)
         
         # Success message
-        print(f"\n✓ Successfully created submittal PDF: {final_pdf}")
+        print(f"\n[SUCCESS] Successfully created submittal PDF: {final_pdf}")
         
         # Print summary
         manifest = assembler.create_file_manifest()
-        print(f"  - {manifest['summary']['total_tags']} equipment tags processed")
-        print(f"  - {manifest['summary']['total_included_files']} documents included")
-        print(f"  - {manifest['summary']['cut_sheets_count']} cut sheets added")
+        print(f"  - {manifest['summary']['title_pages']} equipment tags processed")
+        print(f"  - {manifest['summary']['documents']} documents included")
+        print(f"  - {manifest['summary']['cut_sheets']} cut sheets added")
         
-        if manifest['summary']['total_excluded_files'] > 0:
-            print(f"  - {manifest['summary']['total_excluded_files']} documents skipped (no PDF conversion)")
+        if manifest['summary']['excluded_items'] > 0:
+            print(f"  - {manifest['summary']['excluded_items']} documents excluded")
         
         return 0
         

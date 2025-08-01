@@ -14,11 +14,26 @@ from docx import Document
 import docx2txt
 from PIL import Image
 
+# Import diagnostic logging functions
+try:
+    from .logger import log_tag_extraction, log_json_snapshot, log_processing_stage
+except ImportError:
+    from logger import log_tag_extraction, log_json_snapshot, log_processing_stage
+
 class TagExtractor:
-    def __init__(self, docs_path: str):
+    def __init__(self, docs_path: str, use_filename_tags: bool = False):
+        """
+        Initialize TagExtractor with configurable extraction method.
+        
+        Args:
+            docs_path: Path to directory containing documents
+            use_filename_tags: If True, extract tags from filenames only (fast).
+                             If False, use content-based extraction (slower but more flexible).
+        """
         self.docs_path = docs_path
         self.tag_mapping = {}
         self.extraction_log = []
+        self.use_filename_tags = use_filename_tags
         
     def log_extraction(self, filename: str, method: str, success: bool, tag: str = None, error: str = None):
         """Log extraction attempts"""
@@ -30,6 +45,97 @@ class TagExtractor:
             'error': error
         }
         self.extraction_log.append(log_entry)
+        
+    def extract_tag_from_filename(self, filename: str) -> Optional[str]:
+        """
+        Extract tag directly from filename by finding text before document type suffixes.
+        
+        This method provides fast, reliable tag extraction without reading file content.
+        It extracts the raw text before common document type patterns, allowing users
+        to manually edit the extracted tags in the structure editor for perfect accuracy.
+        
+        Performance benefits:
+        - No file I/O required (instant extraction)
+        - Works with any file type/format 
+        - Reliable even with corrupted/locked files
+        
+        Examples:
+            "10_Technical_Data_Sheet.docx" → "10"
+            "AHU-E1_Drawing.doc" → "AHU-E1"  
+            "AHU-10 - Technical Data Sheet.docx" → "AHU-10"
+            "AHU-M3 3-20-2025 - Fan Curve.doc" → "AHU-M3 3-20-2025"  
+            "28_Fan_Curve_Supply.jpg" → "28_Fan_Curve"
+            "MAU-12_Item_Summary.docx" → "MAU-12"
+            
+        Args:
+            filename: The filename to extract tag from
+            
+        Returns:
+            Raw extracted text (no formatting applied) or None if no pattern found
+        """
+        # Remove file extension first
+        base_name = os.path.splitext(filename)[0]
+        
+        # Handle new format with " - " separator (e.g., "AHU-10 - Technical Data Sheet")
+        # This is the primary format for tagged files
+        dash_separated_patterns = [
+            ' - PreciseLine Drawings',
+            ' - Technical Data Sheet',
+            ' - Item Summary',
+            ' - Drawing', 
+            ' - Fan Curve',
+            ' - Supply',  # For fan curves
+            ' - Return',
+            ' - Exhaust'
+        ]
+        
+        for pattern in dash_separated_patterns:
+            if pattern in base_name:
+                # Extract everything before the pattern
+                tag = base_name.split(pattern)[0]
+                if tag.strip():
+                    return tag.strip()
+        
+        # Handle legacy format with underscore separators
+        # Define common document type suffixes to extract text before
+        # IMPORTANT: Order matters - longer patterns first to avoid partial matches
+        underscore_suffixes = [
+            '_PreciseLine_Drawings',  # Must come before _PreciseLine
+            '_-_Technical_Data_Sheet', # Handle _-_ separator pattern
+            '_-_Item_Summary',         # Handle _-_ separator pattern
+            '_-_Drawing',              # Handle _-_ separator pattern
+            '_-_Fan_Curve',            # Handle _-_ separator pattern
+            '_Technical_Data_Sheet',
+            '_Item_Summary', 
+            '_Drawing',
+            '_Fan_Curve',
+            '_PreciseLine',
+            '_UnitCADFile'
+        ]
+        
+        # Try to find text before each suffix pattern
+        for suffix in underscore_suffixes:
+            if suffix in base_name:
+                # Extract everything before the suffix
+                tag = base_name.split(suffix)[0]
+                if tag.strip():  # Make sure we have actual content
+                    # Clean up common filename artifacts
+                    # Remove trailing _- patterns (e.g., "AHU-E3_-" -> "AHU-E3")
+                    tag = tag.rstrip('_-').strip()
+                    return tag if tag else None
+        
+        # If no suffix pattern found, try common separators
+        # This handles cases like "28_Fan_Curve_Supply" where we want "28_Fan_Curve"
+        separators = ['_Supply', '_Return', '_Exhaust']
+        for sep in separators:
+            if base_name.endswith(sep):
+                tag = base_name[:-len(sep)]
+                if tag.strip():
+                    return tag.strip()
+        
+        # Final fallback: if no patterns match, use the whole filename without extension
+        # This ensures we always return something for manual editing
+        return base_name if base_name.strip() else None
         
     def extract_tags_from_text(self, text: str, filename: str) -> List[str]:
         """Extract all possible tags from text content"""
@@ -206,56 +312,106 @@ class TagExtractor:
             return None
     
     def extract_tag_from_file(self, file_path: str) -> Optional[str]:
-        """Extract tag from a single file using multiple methods"""
+        """
+        Extract tag from a single file using either filename-based or content-based methods.
+        
+        When use_filename_tags is True:
+        - Extracts tag directly from filename (fast, no file I/O)
+        - Logs extraction method for transparency
+        
+        When use_filename_tags is False:
+        - Uses traditional content-based extraction (slower but flexible)
+        - Falls back through multiple extraction methods
+        """
         filename = os.path.basename(file_path)
         file_ext = os.path.splitext(filename)[1].lower()
         
         print(f"Processing: {filename}")
         
+        # Use filename-based extraction if enabled
+        if self.use_filename_tags:
+            tag = self.extract_tag_from_filename(filename)
+            if tag:
+                self.log_extraction(filename, 'filename', True, tag)
+                # Enhanced diagnostic logging
+                log_tag_extraction(filename, 'filename', True, tag, ['filename_patterns'])
+                print(f"  [FILENAME] {filename} -> {tag}")
+                return tag
+            else:
+                self.log_extraction(filename, 'filename', False, error="No filename pattern matched")
+                # Enhanced diagnostic logging
+                log_tag_extraction(filename, 'filename', False, patterns_tested=['filename_patterns'])
+                print(f"  [FILENAME] {filename} -> No pattern found")
+                return None
+        
+        # Traditional content-based extraction
+        methods_tested = []
         if file_ext == '.docx':
             # Try python-docx first
+            methods_tested.append('python-docx')
             tag = self.extract_from_docx_python_docx(file_path)
             if tag:
                 self.log_extraction(filename, 'python-docx', True, tag)
+                log_tag_extraction(filename, 'python-docx', True, tag, methods_tested)
                 return tag
             
             # Try docx2txt as fallback
+            methods_tested.append('docx2txt')
             tag = self.extract_from_docx_docx2txt(file_path)
             if tag:
                 self.log_extraction(filename, 'docx2txt', True, tag)
+                log_tag_extraction(filename, 'docx2txt', True, tag, methods_tested)
                 return tag
                 
         elif file_ext == '.doc':
             # Try multiple approaches for .doc files
             
             # Method 1: Raw string extraction
+            methods_tested.append('strings')
             tag = self.extract_from_doc_strings(file_path)
             if tag:
                 self.log_extraction(filename, 'strings', True, tag)
+                log_tag_extraction(filename, 'strings', True, tag, methods_tested)
                 return tag
             
             # Method 2: olefile approach
+            methods_tested.append('olefile')
             tag = self.extract_from_doc_olefile(file_path)
             if tag:
                 self.log_extraction(filename, 'olefile', True, tag)
+                log_tag_extraction(filename, 'olefile', True, tag, methods_tested)
                 return tag
         
         elif file_ext in ['.jpg', '.jpeg', '.png']:
             # Use filename matching for image files
+            methods_tested.append('filename_matching')
             tag = self.find_tag_by_filename_matching(filename)
             if tag:
+                log_tag_extraction(filename, 'filename_matching', True, tag, methods_tested)
                 # Also convert the image to PDF
                 self.convert_image_to_pdf(file_path)
                 return tag
         
         # If no tag found, log the failure
         self.log_extraction(filename, 'all_methods', False, error='No tag found')
+        log_tag_extraction(filename, 'all_methods', False, patterns_tested=methods_tested)
         return None
     
     def extract_all_tags(self) -> Dict[str, str]:
-        """Extract tags from all files in the directory"""
+        """Extract tags from all files in the directory using configured method"""
+        # Log the start of tag extraction
+        log_processing_stage('extract_all_tags', 'started', {
+            'docs_path': self.docs_path,
+            'use_filename_tags': self.use_filename_tags
+        })
+        
         print("="*60)
-        print("EXTRACTING TAGS FROM ALL FILES")
+        if self.use_filename_tags:
+            print("EXTRACTING TAGS FROM FILENAMES (FAST MODE)")
+            print("Note: Tags extracted from filenames can be edited in structure editor")
+        else:
+            print("EXTRACTING TAGS FROM FILE CONTENT (DEEP SCAN)")
+            print("Note: Scanning file content for tag patterns")
         print("="*60)
         
         # Get all .doc, .docx, and image files
@@ -267,8 +423,20 @@ class TagExtractor:
         
         all_files = sorted(doc_files + docx_files + image_files)
         
+        # Log file discovery
+        log_processing_stage('file_discovery', 'completed', {
+            'docx_files': len(docx_files),
+            'doc_files': len(doc_files),
+            'image_files': len(image_files),
+            'total_files': len(all_files)
+        })
+        
         print(f"Found {len(docx_files)} .docx files, {len(doc_files)} .doc files, and {len(image_files)} image files")
         print()
+        
+        # Process each file
+        successful_extractions = 0
+        failed_extractions = 0
         
         for file_path in all_files:
             filename = os.path.basename(file_path)
@@ -276,10 +444,23 @@ class TagExtractor:
             
             if tag:
                 self.tag_mapping[filename] = tag
+                successful_extractions += 1
                 print(f"  [OK] {filename} -> {tag}")
             else:
                 self.tag_mapping[filename] = None
+                failed_extractions += 1
                 print(f"  [FAIL] {filename} -> No tag found")
+        
+        # Log completion results
+        log_processing_stage('extract_all_tags', 'completed', {
+            'total_files': len(all_files),
+            'successful_extractions': successful_extractions,
+            'failed_extractions': failed_extractions,
+            'success_rate': (successful_extractions / len(all_files) * 100) if all_files else 0
+        })
+        
+        # Log JSON snapshot of tag mapping
+        log_json_snapshot('tag_mapping_results', self.tag_mapping)
         
         return self.tag_mapping
     

@@ -159,3 +159,23 @@ desktop.ini
 # Temporary files
 *.tmp
 *.temp
+
+# Development and testing
+test_*.py
+test_*.html
+test_*.docx
+test.txt
+nul
+~$*
+checkpoints/
+debug_logs/
+web_log*.txt
+
+# Generated content
+uploads/
+web_outputs/
+*.processed
+dst_diagnostic.log
+
+# Example document files (users provide their own)
+documents/

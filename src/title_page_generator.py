@@ -112,6 +112,35 @@ class TitlePageGenerator:
         print(f"Created title page: {filename}")
         return filepath
     
+    def create_title_page(self, title: str, output_path: str) -> str:
+        """Create a generic title page with the given title and save to output_path"""
+        # Create document
+        doc = SimpleDocTemplate(
+            output_path,
+            pagesize=letter,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=72
+        )
+        
+        story = []
+        
+        # Add vertical spacing to center the text vertically
+        story.append(Spacer(1, 3.5*inch))
+        
+        # Add the main title
+        story.append(Paragraph(title, self.title_style))
+        
+        # Add some space after title
+        story.append(Spacer(1, 1*inch))
+        
+        # Build the PDF
+        doc.build(story)
+        
+        print(f"Created title page: {os.path.basename(output_path)}")
+        return output_path
+    
     def create_all_title_pages(self, tags: list) -> dict:
         """Create title pages for all tags and cut sheets"""
         print("="*60)

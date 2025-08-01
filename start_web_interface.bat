@@ -33,7 +33,11 @@ echo Starting web interface...
 echo.
 echo Access the interface at: http://127.0.0.1:5000 (local)
 echo Network access: http://YOUR_IP_ADDRESS:5000 (replace with your computer's IP)
-echo Press Ctrl+C to stop the server
+echo.
+echo SHUTDOWN OPTIONS:
+echo   - Press Ctrl+C in this window for graceful shutdown, OR
+echo   - Run shutdown_web_interface.bat from another window, OR  
+echo   - POST to http://127.0.0.1:5000/shutdown endpoint
 echo.
 
 REM Start the web interface

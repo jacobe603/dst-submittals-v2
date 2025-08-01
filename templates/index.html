@@ -52,6 +52,50 @@
             margin-bottom: 40px;
         }
 
+        .selected-files-section {
+            margin-bottom: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px 0;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .section-header:hover {
+            background: rgba(0,0,0,0.02);
+            border-radius: 8px;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .section-toggle {
+            transition: transform 0.3s ease;
+            color: #6c757d;
+        }
+
+        .section-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            overflow: hidden;
+            max-height: 1000px; /* Large enough for content */
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
         .drop-zone {
             border: 3px dashed #3498db;
             border-radius: 10px;
@@ -181,6 +225,16 @@
             background: #95a5a6;
             cursor: not-allowed;
         }
+        
+        /* Get Tags button specific styling */
+        #getTagsBtn {
+            background: #f39c12;
+        }
+        
+        #getTagsBtn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
 
         .progress-section {
             display: none;
@@ -229,6 +283,49 @@
             padding: 15px;
             background: #f8f9fa;
             border-radius: 8px;
+        }
+
+        .file-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 5px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .file-list-header:hover {
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+        }
+
+        .file-count-badge {
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .file-items-container {
+            max-height: 200px;
+            overflow-y: auto;
+            transition: max-height 0.3s ease;
+        }
+
+        .file-items-container.collapsed {
+            max-height: 0;
+            overflow: hidden;
         }
 
         .file-item {
@@ -290,6 +387,234 @@
         .status-info {
             color: #333;
         }
+
+        /* PDF Structure Editor Styles */
+        .structure-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #e9ecef;
+        }
+
+        .structure-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        /* Save button states */
+        .btn-success.no-changes {
+            background: #95a5a6;  /* Muted gray when no changes */
+            color: #ffffff;
+        }
+
+        .btn-success.no-changes:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-success.has-changes {
+            background: #28a745;  /* Bright green when changes need saving */
+            color: #ffffff;
+        }
+
+        .btn-success.has-changes:hover {
+            background: #218838;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .structure-status {
+            font-size: 14px;
+            margin-left: auto;
+        }
+
+        .structure-tree {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: 700px;
+            overflow-y: auto;
+            min-height: 300px;
+        }
+
+        .structure-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 2px 0;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+            background: #f8f9fa;
+            transition: all 0.3s;
+        }
+
+        .structure-item:hover {
+            background: #e9ecef;
+            border-color: #dee2e6;
+        }
+
+        .structure-item.title-page {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            font-weight: bold;
+            margin: 8px 0 4px 0;
+        }
+
+        .structure-item.document {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            margin-left: 20px;
+        }
+
+        .structure-item.cut-sheet {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            margin-left: 20px;
+        }
+
+        .structure-item.excluded {
+            opacity: 0.5;
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .item-checkbox {
+            margin-right: 10px;
+        }
+
+        .item-icon {
+            margin-right: 8px;
+            width: 16px;
+            text-align: center;
+        }
+
+        .item-title {
+            flex-grow: 1;
+            font-size: 14px;
+        }
+
+        .item-type {
+            font-size: 12px;
+            color: #6c757d;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+
+        .item-position {
+            font-size: 12px;
+            color: #6c757d;
+            margin-left: 8px;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #6c757d;
+            margin-right: 8px;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .structure-loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .structure-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .structure-empty {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+        }
+
+        /* Drag and drop styles */
+        .sortable-ghost {
+            opacity: 0.4;
+        }
+
+        .sortable-chosen {
+            background: #007bff !important;
+            color: white !important;
+        }
+
+        .sortable-drag {
+            background: #007bff !important;
+            color: white !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Version badge */
+        .version-badge {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(108, 117, 125, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-family: 'Courier New', monospace;
+            z-index: 1000;
+            user-select: none;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .version-badge:hover {
+            opacity: 1;
+            background: rgba(108, 117, 125, 1);
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -302,25 +627,42 @@
 
         <div class="main-content">
             <div class="upload-section">
-                <div class="drop-zone" id="dropZone">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <h3>Drag & Drop Files Here</h3>
-                    <p>Or click to browse files (.doc, .docx, .pdf, .zip)</p>
-                    <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                        <i class="fas fa-folder-open"></i> Browse Files
-                    </button>
+                <div class="section-header" onclick="toggleUploadSection()">
+                    <h3><i class="fas fa-cloud-upload-alt"></i> File Upload</h3>
+                    <i id="uploadSectionToggle" class="fas fa-chevron-down section-toggle"></i>
                 </div>
-                <input type="file" id="fileInput" class="file-input" multiple accept=".doc,.docx,.pdf,.zip">
-                
+                <div id="uploadSectionContent" class="collapsible-content">
+                    <div class="drop-zone" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Drag & Drop Files Here</h3>
+                        <p>Or click to browse files (.doc, .docx, .pdf, .zip)</p>
+                        <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-folder-open"></i> Browse Files
+                        </button>
+                    </div>
+                    <input type="file" id="fileInput" class="file-input" multiple accept=".doc,.docx,.pdf,.zip">
+                </div>
+            </div>
+
+            <div class="selected-files-section">
                 <div id="fileList" class="file-list" style="display: none;">
-                    <h4><i class="fas fa-list"></i> Selected Files:</h4>
-                    <div id="fileItems"></div>
+                    <div class="file-list-header" onclick="toggleFileList()">
+                        <h4><i class="fas fa-list"></i> Selected Files <span id="fileCountBadge" class="file-count-badge">0</span></h4>
+                        <i id="fileListToggle" class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                    <div id="fileItemsContainer" class="file-items-container">
+                        <div id="fileItems"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="options-section">
-                <h3><i class="fas fa-cogs"></i> Processing Options</h3>
-                <div class="options-grid">
+                <div class="section-header" onclick="toggleOptionsSection()">
+                    <h3><i class="fas fa-cogs"></i> Processing Options</h3>
+                    <i id="optionsSectionToggle" class="fas fa-chevron-down section-toggle collapsed"></i>
+                </div>
+                <div id="optionsSectionContent" class="collapsible-content collapsed">
+                    <div class="options-grid">
                     <div class="option-group">
                         <h4>Output Settings</h4>
                         <div class="form-group">
@@ -331,6 +673,10 @@
                             <input type="checkbox" id="noPricingFilter">
                             <label for="noPricingFilter">Include pricing pages (disable price filter)</label>
                         </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="taggedFilenames" checked>
+                            <label for="taggedFilenames">Extract tags from filenames (fast mode - bypass content scanning)</label>
+                        </div>
                     </div>
 
                     <div class="option-group">
@@ -338,10 +684,6 @@
                         <div class="form-group">
                             <label for="officeToPdfPath">OfficeToPDF Path</label>
                             <input type="text" id="officeToPdfPath" placeholder="C:\Tools\OfficeToPDF.exe">
-                        </div>
-                        <div class="form-group">
-                            <label for="maxWorkers">Max Workers</label>
-                            <input type="number" id="maxWorkers" min="1" max="8" value="1">
                         </div>
                         <div class="form-group">
                             <label for="conversionTimeout">Conversion Timeout (seconds)</label>
@@ -365,11 +707,42 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
-            <button id="processBtn" class="process-btn" disabled>
-                <i class="fas fa-play"></i> Generate Submittal PDF
+            <button id="getTagsBtn" class="process-btn" disabled style="margin-bottom: 15px;">
+                <i class="fas fa-search"></i> Get Tags & Preview Structure
             </button>
+
+            <div id="structureSection" class="structure-section" style="display: none;">
+                <div class="section-header" onclick="toggleStructureSection()">
+                    <h3><i class="fas fa-list-ol"></i> PDF Structure Preview</h3>
+                    <i id="structureSectionToggle" class="fas fa-chevron-down section-toggle"></i>
+                </div>
+                <div id="structureSectionContent" class="collapsible-content">
+                <p>Review and edit the PDF structure before generating the final document:</p>
+                
+                <div class="structure-controls">
+                    <button id="saveStructureBtn" class="btn btn-success">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                    <button id="resetStructureBtn" class="btn btn-secondary">
+                        <i class="fas fa-undo"></i> Reset to Original
+                    </button>
+                    <span id="structureStatus" class="structure-status"></span>
+                </div>
+                
+                <div id="structureTree" class="structure-tree">
+                    <!-- PDF structure will be loaded here -->
+                </div>
+                
+                <div class="generate-section" style="margin-top: 20px; text-align: center;">
+                    <button id="processBtn" class="process-btn" disabled>
+                        <i class="fas fa-play"></i> Generate Submittal PDF
+                    </button>
+                </div>
+                </div>
+            </div>
 
             <div id="progressSection" class="progress-section">
                 <h4>Processing...</h4>
@@ -381,8 +754,15 @@
         </div>
     </div>
 
+    <!-- Version badge -->
+    <div id="versionBadge" class="version-badge">
+        v?.?.?
+    </div>
+
     <script>
         let selectedFiles = [];
+        let currentPdfStructure = [];
+        let originalPdfStructure = [];
 
         // Drag and drop functionality
         const dropZone = document.getElementById('dropZone');
@@ -390,6 +770,14 @@
         const fileList = document.getElementById('fileList');
         const fileItems = document.getElementById('fileItems');
         const processBtn = document.getElementById('processBtn');
+        
+        // Structure editor elements
+        const getTagsBtn = document.getElementById('getTagsBtn');
+        const structureSection = document.getElementById('structureSection');
+        const structureTree = document.getElementById('structureTree');
+        const saveStructureBtn = document.getElementById('saveStructureBtn');
+        const resetStructureBtn = document.getElementById('resetStructureBtn');
+        const structureStatus = document.getElementById('structureStatus');
 
         // Prevent default drag behaviors
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -437,13 +825,33 @@
         function handleFiles(files) {
             selectedFiles = Array.from(files);
             displayFiles();
-            processBtn.disabled = selectedFiles.length === 0;
+            getTagsBtn.disabled = selectedFiles.length === 0;
+            
+            // Hide structure section when new files are selected
+            structureSection.style.display = 'none';
+            processBtn.disabled = true;  // Disable until structure is loaded
+            currentPdfStructure = [];
+            originalPdfStructure = [];
+            
+            // Auto-collapse upload section after files are selected
+            if (selectedFiles.length > 0) {
+                const uploadContent = document.getElementById('uploadSectionContent');
+                const uploadToggle = document.getElementById('uploadSectionToggle');
+                if (!uploadContent.classList.contains('collapsed')) {
+                    uploadContent.classList.add('collapsed');
+                    uploadToggle.classList.add('collapsed');
+                }
+            }
         }
 
         function displayFiles() {
             fileItems.innerHTML = '';
+            const fileCountBadge = document.getElementById('fileCountBadge');
+            
             if (selectedFiles.length > 0) {
                 fileList.style.display = 'block';
+                fileCountBadge.textContent = selectedFiles.length;
+                
                 selectedFiles.forEach((file, index) => {
                     const fileItem = document.createElement('div');
                     fileItem.className = 'file-item';
@@ -455,15 +863,32 @@
                     `;
                     fileItems.appendChild(fileItem);
                 });
+                
+                // Auto-collapse if more than 5 files
+                if (selectedFiles.length > 5) {
+                    const container = document.getElementById('fileItemsContainer');
+                    const toggle = document.getElementById('fileListToggle');
+                    if (!container.classList.contains('collapsed')) {
+                        container.classList.add('collapsed');
+                        toggle.classList.add('collapsed');
+                    }
+                }
             } else {
                 fileList.style.display = 'none';
+                fileCountBadge.textContent = '0';
             }
         }
 
         function removeFile(index) {
             selectedFiles.splice(index, 1);
             displayFiles();
-            processBtn.disabled = selectedFiles.length === 0;
+            
+            // If no files left, disable get tags button and hide structure
+            if (selectedFiles.length === 0) {
+                getTagsBtn.disabled = true;
+                structureSection.style.display = 'none';
+                processBtn.disabled = true;
+            }
         }
 
         function formatFileSize(bytes) {
@@ -474,9 +899,290 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        function toggleFileList() {
+            const container = document.getElementById('fileItemsContainer');
+            const toggle = document.getElementById('fileListToggle');
+            
+            if (container.classList.contains('collapsed')) {
+                container.classList.remove('collapsed');
+                toggle.classList.remove('collapsed');
+            } else {
+                container.classList.add('collapsed');
+                toggle.classList.add('collapsed');
+            }
+        }
+
+        function toggleUploadSection() {
+            const content = document.getElementById('uploadSectionContent');
+            const toggle = document.getElementById('uploadSectionToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                toggle.classList.remove('collapsed');
+            } else {
+                content.classList.add('collapsed');
+                toggle.classList.add('collapsed');
+            }
+        }
+
+        function toggleOptionsSection() {
+            const content = document.getElementById('optionsSectionContent');
+            const toggle = document.getElementById('optionsSectionToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                toggle.classList.remove('collapsed');
+            } else {
+                content.classList.add('collapsed');
+                toggle.classList.add('collapsed');
+            }
+        }
+
+        function toggleStructureSection() {
+            const content = document.getElementById('structureSectionContent');
+            const toggle = document.getElementById('structureSectionToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                toggle.classList.remove('collapsed');
+            } else {
+                content.classList.add('collapsed');
+                toggle.classList.add('collapsed');
+            }
+        }
+
         // Global variables for progress tracking
         let currentEventSource = null;
         let currentCorrelationId = null;
+
+        // Structure editor event listeners
+        getTagsBtn.addEventListener('click', getTagsAndStructure);
+        saveStructureBtn.addEventListener('click', saveStructure);
+        resetStructureBtn.addEventListener('click', resetStructure);
+
+        // Get tags and load structure
+        async function getTagsAndStructure() {
+            if (selectedFiles.length === 0) return;
+
+            try {
+                getTagsBtn.disabled = true;
+                getTagsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                
+                // First, process files to generate tags (but don't generate PDF)
+                const formData = new FormData();
+                selectedFiles.forEach(file => {
+                    formData.append('files', file);
+                });
+                
+                // Add options
+                formData.append('no_pricing_filter', document.getElementById('noPricingFilter').checked);
+                formData.append('tagged_filenames', document.getElementById('taggedFilenames').checked);
+                
+                // Extract tags only (no PDF processing)
+                const response = await fetch('/extract-tags', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Structure is already loaded from the response, update the UI
+                    currentPdfStructure = result.pdf_structure;
+                    originalPdfStructure = JSON.parse(JSON.stringify(result.pdf_structure)); // Deep copy
+                    displayStructure();
+                    structureSection.style.display = 'block';
+                    processBtn.disabled = false;  // Enable generate button when structure is loaded via Get Tags
+                    updateSaveButtonState(); // Set initial button state when structure loads
+                    showStructureStatus(`Found ${result.tags_found} tagged files in ${result.equipment_groups} equipment groups`, 'success');
+                } else {
+                    throw new Error(result.error || 'Failed to extract tags');
+                }
+                
+            } catch (error) {
+                console.error('Failed to get tags:', error);
+                processBtn.disabled = true;  // Disable generate button on error
+                showStructureStatus('Error: ' + error.message, 'error');
+            } finally {
+                getTagsBtn.disabled = false;
+                getTagsBtn.innerHTML = '<i class="fas fa-search"></i> Get Tags & Preview Structure';
+            }
+        }
+
+        // Load PDF structure from server
+        async function loadStructure() {
+            try {
+                structureTree.innerHTML = '<div class="structure-loading"><i class="fas fa-spinner fa-spin"></i> Loading structure...</div>';
+                
+                const response = await fetch('/get-structure');
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentPdfStructure = result.pdf_structure;
+                    originalPdfStructure = JSON.parse(JSON.stringify(result.pdf_structure)); // Deep copy
+                    
+                    displayStructure();
+                    structureSection.style.display = 'block';
+                    processBtn.disabled = false;  // Enable generate button when structure is loaded
+                    updateSaveButtonState(); // Set initial button state when existing structure loads
+                    showStructureStatus(`Loaded ${result.pdf_structure.length} items`, 'success');
+                } else {
+                    throw new Error(result.error || 'Failed to load structure');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load structure:', error);
+                structureTree.innerHTML = `<div class="structure-error">Error loading structure: ${error.message}</div>`;
+                processBtn.disabled = true;  // Disable generate button on error
+                showStructureStatus('Error loading structure', 'error');
+            }
+        }
+
+        // Display the PDF structure
+        function displayStructure() {
+            if (!currentPdfStructure || currentPdfStructure.length === 0) {
+                structureTree.innerHTML = '<div class="structure-empty">No structure available</div>';
+                return;
+            }
+            
+            structureTree.innerHTML = '';
+            
+            currentPdfStructure.forEach((item, index) => {
+                const itemElement = createStructureItem(item, index);
+                structureTree.appendChild(itemElement);
+            });
+        }
+
+        // Create a structure item element
+        function createStructureItem(item, index) {
+            const div = document.createElement('div');
+            div.className = `structure-item ${item.type.replace('_', '-')} ${!item.include ? 'excluded' : ''}`;
+            div.dataset.index = index;
+            
+            let icon = '';
+            switch (item.type) {
+                case 'title_page':
+                    icon = 'fas fa-heading';
+                    break;
+                case 'document':
+                    icon = 'fas fa-file-alt';
+                    break;
+                case 'cut_sheet':
+                    icon = 'fas fa-cut';
+                    break;
+            }
+            
+            const title = item.display_title || item.title || item.filename || 'Untitled';
+            const typeLabel = item.file_type || item.type.replace('_', ' ');
+            
+            div.innerHTML = `
+                <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                <input type="checkbox" class="item-checkbox" ${item.include ? 'checked' : ''} 
+                       onchange="toggleItemInclusion(${index})">
+                <span class="item-icon"><i class="${icon}"></i></span>
+                <span class="item-title" contenteditable="true" onblur="updateItemTitle(${index}, this.textContent)">${title}</span>
+                <span class="item-type">${typeLabel}</span>
+                <span class="item-position">${item.position}</span>
+            `;
+            
+            return div;
+        }
+
+        // Toggle item inclusion
+        function toggleItemInclusion(index) {
+            currentPdfStructure[index].include = !currentPdfStructure[index].include;
+            displayStructure();
+            updateSaveButtonState();
+            showStructureStatus('Structure modified - remember to save changes', 'warning');
+        }
+
+        // Update item title
+        function updateItemTitle(index, newTitle) {
+            if (currentPdfStructure[index].display_title !== undefined) {
+                currentPdfStructure[index].display_title = newTitle;
+            } else if (currentPdfStructure[index].title !== undefined) {
+                currentPdfStructure[index].title = newTitle;
+            }
+            updateSaveButtonState();
+            showStructureStatus('Structure modified - remember to save changes', 'warning');
+        }
+
+        // Check if there are unsaved changes
+        function hasUnsavedChanges() {
+            return JSON.stringify(currentPdfStructure) !== JSON.stringify(originalPdfStructure);
+        }
+
+        // Update save button visual state based on changes
+        function updateSaveButtonState() {
+            if (hasUnsavedChanges()) {
+                saveStructureBtn.classList.remove('no-changes');
+                saveStructureBtn.classList.add('has-changes');
+            } else {
+                saveStructureBtn.classList.remove('has-changes');
+                saveStructureBtn.classList.add('no-changes');
+            }
+        }
+
+        // Save structure to server
+        async function saveStructure() {
+            try {
+                saveStructureBtn.disabled = true;
+                saveStructureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                
+                // Update positions
+                currentPdfStructure.forEach((item, index) => {
+                    item.position = index + 1;
+                });
+                
+                const response = await fetch('/update-structure', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pdf_structure: currentPdfStructure
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    originalPdfStructure = JSON.parse(JSON.stringify(currentPdfStructure));
+                    updateSaveButtonState(); // Update button state after successful save
+                    showStructureStatus('Structure saved successfully', 'success');
+                    displayStructure(); // Refresh to show updated positions
+                } else {
+                    throw new Error(result.error || 'Failed to save structure');
+                }
+                
+            } catch (error) {
+                console.error('Failed to save structure:', error);
+                showStructureStatus('Error saving structure: ' + error.message, 'error');
+            } finally {
+                saveStructureBtn.disabled = false;
+                saveStructureBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            }
+        }
+
+        // Reset structure to original
+        function resetStructure() {
+            currentPdfStructure = JSON.parse(JSON.stringify(originalPdfStructure));
+            updateSaveButtonState(); // Update button state after reset
+            displayStructure();
+            showStructureStatus('Structure reset to original', 'info');
+        }
+
+        // Show structure status message
+        function showStructureStatus(message, type) {
+            structureStatus.textContent = message;
+            structureStatus.className = `structure-status ${type}`;
+            
+            // Clear status after 5 seconds
+            setTimeout(() => {
+                structureStatus.textContent = '';
+                structureStatus.className = 'structure-status';
+            }, 5000);
+        }
 
         // Process files
         processBtn.addEventListener('click', processFiles);
@@ -494,6 +1200,14 @@
             progressFill.style.width = '0%';
             statusMessage.innerHTML = 'Uploading files...';
             statusMessage.className = 'status-message';
+            
+            // Collapse PDF Structure Preview section when generating
+            const structureSectionContent = document.getElementById('structureSectionContent');
+            const structureSectionToggle = document.getElementById('structureSectionToggle');
+            if (structureSectionContent && !structureSectionContent.classList.contains('collapsed')) {
+                structureSectionContent.classList.add('collapsed');
+                structureSectionToggle.classList.add('collapsed');
+            }
 
             try {
                 const formData = new FormData();
@@ -506,8 +1220,8 @@
                 // Add options
                 formData.append('output_filename', document.getElementById('outputFilename').value);
                 formData.append('no_pricing_filter', document.getElementById('noPricingFilter').checked);
+                formData.append('tagged_filenames', document.getElementById('taggedFilenames').checked);
                 formData.append('DST_OFFICETOPDF_PATH', document.getElementById('officeToPdfPath').value);
-                formData.append('DST_MAX_WORKERS', document.getElementById('maxWorkers').value);
                 formData.append('DST_CONVERSION_TIMEOUT', document.getElementById('conversionTimeout').value);
                 formData.append('DST_CONVERTED_PDFS_DIR', document.getElementById('convertedPdfsDir').value);
                 formData.append('DST_TITLE_PAGES_DIR', document.getElementById('titlePagesDir').value);
@@ -520,7 +1234,7 @@
                 });
 
                 const result = await response.json();
-                console.log('Upload result:', result);
+                // Upload completed successfully
 
                 if (result.success && result.correlation_id) {
                     // Start real-time progress tracking
@@ -552,37 +1266,68 @@
             const progressFill = document.getElementById('progressFill');
             const statusMessage = document.getElementById('statusMessage');
 
-            // Create new EventSource for progress updates
-            currentEventSource = new EventSource(`/progress/${correlationId}`);
+            let reconnectAttempts = 0;
+            const maxReconnectAttempts = 3;
 
-            currentEventSource.onopen = function(event) {
-                console.log('Progress stream connected');
-                statusMessage.innerHTML = 'Connected to progress stream...';
-            };
+            function connectEventSource() {
+                // Connecting to progress stream
+                
+                // Create new EventSource for progress updates
+                currentEventSource = new EventSource(`/progress/${correlationId}`);
 
-            currentEventSource.onmessage = function(event) {
-                try {
-                    const update = JSON.parse(event.data);
-                    console.log('Progress update:', update);
+                currentEventSource.onopen = function(event) {
+                    // Progress stream connected
+                    reconnectAttempts = 0;
+                    statusMessage.innerHTML = '<div class="status-info">Connected to progress stream...</div>';
+                };
 
-                    if (update.type === 'progress') {
-                        updateProgress(update.data);
-                    } else if (update.type === 'error') {
-                        addErrorToDisplay(update.data);
-                    } else if (update.type === 'complete') {
-                        handleCompletion(update.data);
+                currentEventSource.onmessage = function(event) {
+                    try {
+                        const update = JSON.parse(event.data);
+                        // Progress update received
+
+                        if (update.type === 'progress') {
+                            updateProgress(update.data);
+                        } else if (update.type === 'error') {
+                            addErrorToDisplay(update.data);
+                        } else if (update.type === 'complete') {
+                            handleCompletion(update.data);
+                        } else if (update.type === 'keepalive') {
+                            // Keepalive received
+                        } else if (update.type === 'connected') {
+                            // Connection confirmed by server
+                        }
+                    } catch (error) {
+                        console.error('Error parsing progress update:', error, 'Raw data:', event.data);
                     }
-                } catch (error) {
-                    console.error('Error parsing progress update:', error);
-                }
-            };
+                };
 
-            currentEventSource.onerror = function(event) {
-                console.error('EventSource error:', event);
-                if (currentEventSource.readyState === EventSource.CLOSED) {
-                    console.log('Progress stream closed');
-                }
-            };
+                currentEventSource.onerror = function(event) {
+                    console.error('EventSource error:', event, 'ReadyState:', currentEventSource.readyState);
+                    
+                    if (currentEventSource.readyState === EventSource.CLOSED) {
+                        // Progress stream closed
+                        
+                        // Attempt to reconnect if we haven't exceeded max attempts
+                        if (reconnectAttempts < maxReconnectAttempts) {
+                            reconnectAttempts++;
+                            // Attempting to reconnect
+                            
+                            statusMessage.innerHTML = `<div class="status-info">Connection lost, reconnecting... (${reconnectAttempts}/${maxReconnectAttempts})</div>`;
+                            
+                            setTimeout(() => {
+                                connectEventSource();
+                            }, 2000 * reconnectAttempts); // Exponential backoff
+                        } else {
+                            console.error('Max reconnection attempts reached');
+                            statusMessage.innerHTML = '<div class="status-error">Connection lost. Please refresh the page if processing seems stuck.</div>';
+                        }
+                    }
+                };
+            }
+
+            // Initial connection
+            connectEventSource();
         }
 
         function updateProgress(data) {
@@ -690,15 +1435,26 @@
                 const response = await fetch('/status');
                 const status = await response.json();
                 
+                // Update version badge
+                const versionBadge = document.getElementById('versionBadge');
+                if (status.version) {
+                    versionBadge.textContent = `v${status.version}`;
+                    versionBadge.title = `DST Submittals Generator v${status.version}`;
+                }
+                
                 // Pre-fill form fields with current configuration
                 if (status.officetopdf_path) {
                     document.getElementById('officeToPdfPath').value = status.officetopdf_path;
                 }
-                document.getElementById('maxWorkers').value = status.max_workers || 1;
                 document.getElementById('conversionTimeout').value = status.conversion_timeout || 120;
                 
             } catch (error) {
                 console.warn('Could not load application status:', error);
+                // Show error state in version badge
+                const versionBadge = document.getElementById('versionBadge');
+                versionBadge.textContent = 'v?';
+                versionBadge.title = 'Could not load version information';
+                versionBadge.style.background = 'rgba(220, 53, 69, 0.9)';
             }
         }
 

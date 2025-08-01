@@ -16,12 +16,20 @@ from pypdf import PdfReader, PdfWriter
 import re
 import concurrent.futures
 from PIL import Image
+import time
 
 try:
     import win32com.client
+    import pythoncom
     WORD_AVAILABLE = True
 except ImportError:
     WORD_AVAILABLE = False
+
+# Import config to get OfficeToPDF path
+try:
+    from .config import Config
+except ImportError:
+    from config import Config
 
 class DocumentPDFConverter:
     def check_libreoffice_available(self) -> bool:
@@ -42,6 +50,13 @@ class DocumentPDFConverter:
         self.conversion_log = []
         self.libreoffice_available = self.check_libreoffice_available()
         self.word_available = WORD_AVAILABLE
+        
+        # Load configuration
+        self.config = Config()
+        self.officetopdf_path = self.config.officetopdf_path
+        
+        # Check if OfficeToPDF is available
+        self.officetopdf_available = os.path.exists(self.officetopdf_path) if self.officetopdf_path else False
         
         # Create output directory
         os.makedirs(self.output_dir, exist_ok=True)
@@ -70,6 +85,44 @@ class DocumentPDFConverter:
             pass
         except Exception as e:
             print(f"  [ERROR] Failed to kill soffice processes: {e}")
+    
+    def convert_with_officetopdf(self, input_path: str, output_dir: str) -> Optional[str]:
+        """Convert document using OfficeToPDF (fastest and most reliable method)"""
+        if not self.officetopdf_available:
+            return None
+            
+        try:
+            filename = os.path.basename(input_path)
+            base_name = os.path.splitext(filename)[0]
+            output_path = os.path.join(output_dir, f"{base_name}.pdf")
+            
+            print(f"  [OfficeToPDF] Converting {filename}...")
+            
+            # Convert to absolute paths
+            input_path = os.path.abspath(input_path)
+            output_path = os.path.abspath(output_path)
+            
+            # Run OfficeToPDF command
+            result = subprocess.run([
+                self.officetopdf_path,
+                input_path,
+                output_path
+            ], capture_output=True, text=True, timeout=self.config.conversion_timeout)
+            
+            if result.returncode == 0 and os.path.exists(output_path):
+                self.log_conversion(filename, 'officetopdf', True, output_path)
+                return output_path
+            else:
+                error_msg = f"OfficeToPDF failed: Return code {result.returncode}. Stderr: {result.stderr.strip()}"
+                self.log_conversion(filename, 'officetopdf', False, error=error_msg)
+                return None
+                
+        except subprocess.TimeoutExpired:
+            self.log_conversion(filename, 'officetopdf', False, error="Conversion timeout")
+            return None
+        except Exception as e:
+            self.log_conversion(filename, 'officetopdf', False, error=str(e))
+            return None
     
     def convert_with_libreoffice(self, input_path: str, output_dir: str) -> Optional[str]:
         """Convert document using LibreOffice headless mode"""
@@ -206,6 +259,9 @@ class DocumentPDFConverter:
             return None
             
         try:
+            # Initialize COM for this thread
+            pythoncom.CoInitialize()
+            
             filename = os.path.basename(input_path)
             base_name = os.path.splitext(filename)[0]
             output_path = os.path.join(output_dir, f"{base_name}.pdf")
@@ -258,6 +314,9 @@ class DocumentPDFConverter:
                 pass
             self.log_conversion(filename, 'word_com', False, error=str(e))
             return None
+        finally:
+            # Uninitialize COM for this thread
+            pythoncom.CoUninitialize()
     
     def convert_document_to_pdf(self, input_path: str) -> Optional[str]:
         """Convert a single document to PDF using the best available method"""
@@ -265,7 +324,13 @@ class DocumentPDFConverter:
         print(f"\nConverting: {filename}")
         
         if input_path.endswith('.docx'):
-            # For .docx files, try docx2pdf first (faster)
+            # Try OfficeToPDF first (fastest and most reliable)
+            if self.officetopdf_available:
+                pdf_path = self.convert_with_officetopdf(input_path, self.output_dir)
+                if pdf_path:
+                    return pdf_path
+            
+            # For .docx files, try docx2pdf second
             pdf_path = self.convert_with_docx2pdf(input_path, self.output_dir)
             if pdf_path:
                 return pdf_path
@@ -288,7 +353,13 @@ class DocumentPDFConverter:
                 return pdf_path
         
         elif input_path.endswith('.doc'):
-            # For .doc files, try Word COM first (best quality, Windows only)
+            # Try OfficeToPDF first (fastest and most reliable)
+            if self.officetopdf_available:
+                pdf_path = self.convert_with_officetopdf(input_path, self.output_dir)
+                if pdf_path:
+                    return pdf_path
+            
+            # For .doc files, try Word COM second (best quality, Windows only)
             if self.word_available:
                 pdf_path = self.convert_with_word_com(input_path, self.output_dir)
                 if pdf_path:

@@ -33,7 +33,6 @@ set DST_TAG_MAPPING_FILE=custom_tag_mapping.json
 set DST_PDF_CONVERSION_MAPPING_FILE=custom_pdf_mapping.json
 
 # Configure processing settings
-set DST_MAX_WORKERS=1
 set DST_CONVERSION_TIMEOUT=180
 set DST_LIBREOFFICE_TIMEOUT=90
 
@@ -47,7 +46,6 @@ set DST_DEFAULT_DOCS_PATH=C:\MyDocuments\HVAC_Submittals
 - `DST_TITLE_PAGES_DIR`: Output directory for title pages (default: title_pages)
 - `DST_TAG_MAPPING_FILE`: JSON file for tag mappings (default: tag_mapping_enhanced.json)
 - `DST_PDF_CONVERSION_MAPPING_FILE`: JSON file for conversion tracking (default: pdf_conversion_mapping.json)
-- `DST_MAX_WORKERS`: Number of parallel workers (default: 1 - sequential processing)
 - `DST_CONVERSION_TIMEOUT`: Conversion timeout in seconds (default: 120)
 - `DST_LIBREOFFICE_TIMEOUT`: LibreOffice timeout in seconds (default: 60)
 - `DST_DEFAULT_DOCS_PATH`: Default documents path for testing
@@ -161,6 +159,8 @@ Check Word automation functionality by examining conversion logs and testing ind
 - **All CLI Options**: Complete web form interface for all command-line switches and environment variables
 - **Network Access**: Can be accessed from other computers on the network using `start_web_interface_network.bat`
 - **File Download**: Direct download of generated PDFs with proper filename handling
+- **PDF Structure Editing**: Interactive preview and editing of document structure before generation
+- **Collapsible Sections**: Clean, organized interface with collapsible sections for optimal workflow
 
 ### ⚡ **Real-Time Progress Reporting**
 - **Live Updates**: Server-Sent Events (SSE) for real-time progress streaming without page refresh
@@ -201,6 +201,15 @@ start_web_interface_network.bat
 python web_interface.py --host 0.0.0.0 --port 5000
 
 # Access from other computers: http://YOUR_IP_ADDRESS:5000
+```
+
+**Graceful Shutdown:**
+```bash
+# Recommended methods (in order of preference):
+shutdown_web_interface.bat              # Batch file with HTTP + fallback
+shutdown_web_interface.ps1              # PowerShell script with detailed feedback
+# Press Ctrl+C in server window         # Direct keyboard interrupt
+# POST http://127.0.0.1:5000/shutdown   # HTTP endpoint for automation
 ```
 
 **Workflow:**
