@@ -75,13 +75,23 @@ class DocumentPDFConverter:
     def _kill_soffice_processes(self):
         """Kill any running soffice (LibreOffice) processes."""
         try:
-            # Find PIDs of soffice processes
-            pids = subprocess.check_output(["pgrep", "soffice"]).decode().strip().split('\n')
-            for pid in pids:
-                if pid:
-                    print(f"  [LibreOffice] Killing soffice process: {pid}")
-                    subprocess.run(["kill", "-9", pid], capture_output=True)
-        except subprocess.CalledProcessError: # pgrep returns 1 if no processes found
+            import platform
+            if platform.system() == "Windows":
+                # Windows: Use taskkill to terminate LibreOffice processes
+                subprocess.run(["taskkill", "/F", "/IM", "soffice.exe"], 
+                             capture_output=True, check=False)
+                subprocess.run(["taskkill", "/F", "/IM", "soffice.bin"], 
+                             capture_output=True, check=False)
+                print(f"  [LibreOffice] Killed Windows soffice processes")
+            else:
+                # Linux/Mac: Use original pgrep/kill approach
+                pids = subprocess.check_output(["pgrep", "soffice"]).decode().strip().split('\n')
+                for pid in pids:
+                    if pid:
+                        print(f"  [LibreOffice] Killing soffice process: {pid}")
+                        subprocess.run(["kill", "-9", pid], capture_output=True)
+        except subprocess.CalledProcessError:
+            # Process not found - this is normal
             pass
         except Exception as e:
             print(f"  [ERROR] Failed to kill soffice processes: {e}")
@@ -89,6 +99,7 @@ class DocumentPDFConverter:
     def convert_with_officetopdf(self, input_path: str, output_dir: str) -> Optional[str]:
         """Convert document using OfficeToPDF (fastest and most reliable method)"""
         if not self.officetopdf_available:
+            print(f"  [SKIP] OfficeToPDF not available at: {self.officetopdf_path}")
             return None
             
         try:
@@ -113,7 +124,8 @@ class DocumentPDFConverter:
                 self.log_conversion(filename, 'officetopdf', True, output_path)
                 return output_path
             else:
-                error_msg = f"OfficeToPDF failed: Return code {result.returncode}. Stderr: {result.stderr.strip()}"
+                error_msg = f"OfficeToPDF failed: Return code {result.returncode}. Stderr: {result.stderr.strip()}. Stdout: {result.stdout.strip()}"
+                print(f"  [ERROR] {error_msg}")
                 self.log_conversion(filename, 'officetopdf', False, error=error_msg)
                 return None
                 
@@ -182,7 +194,8 @@ class DocumentPDFConverter:
             # Convert to RGB if not already, as Pillow's save method for PDF requires it
             if image.mode in ('RGBA', 'P'):
                 image = image.convert('RGB')
-            image.save(output_path, "PDF")
+            # Save with configurable quality settings
+            image.save(output_path, "PDF", resolution=float(self.config.pdf_resolution), quality=self.config.image_quality)
 
             if os.path.exists(output_path):
                 self.log_conversion(filename, 'image_to_pdf', True, output_path)
@@ -256,6 +269,7 @@ class DocumentPDFConverter:
     def convert_with_word_com(self, input_path: str, output_dir: str) -> Optional[str]:
         """Convert document using Microsoft Word COM automation"""
         if not WORD_AVAILABLE:
+            print(f"  [SKIP] Word COM not available (pywin32 not installed)")
             return None
             
         try:
@@ -280,17 +294,34 @@ class DocumentPDFConverter:
                 # Open document
                 doc = word.Documents.Open(input_path, ReadOnly=True)
                 
-                # Export as PDF
+                # Export as PDF with backward-compatible quality settings
                 # wdExportFormatPDF = 17
-                doc.ExportAsFixedFormat(
-                    OutputFileName=output_path,
-                    ExportFormat=17,  # PDF format
-                    OpenAfterExport=False,
-                    OptimizeFor=1,  # wdExportOptimizeForPrint = 1 (for quality)
-                    BitmapMissingFonts=True,
-                    DocStructureTags=False,
-                    CreateBookmarks=False
-                )
+                try:
+                    # Try with all quality parameters (newer Word versions)
+                    doc.ExportAsFixedFormat(
+                        OutputFileName=output_path,
+                        ExportFormat=17,  # PDF format
+                        OpenAfterExport=False,
+                        OptimizeFor=1,  # wdExportOptimizeForPrint = 1 (for quality)
+                        BitmapMissingFonts=True,
+                        UseDocumentImageResolution=True,  # Preserve original image resolution
+                        JPEGQuality=self.config.jpeg_quality,  # Configurable JPEG quality (0-100)
+                        DocStructureTags=False,
+                        CreateBookmarks=False,
+                        IncludeMarkup=False  # Exclude comments/revisions for cleaner output
+                    )
+                except TypeError as te:
+                    # Fallback for older Word versions - remove unsupported parameters
+                    print(f"  [INFO] Using fallback Word COM parameters (older version detected)")
+                    doc.ExportAsFixedFormat(
+                        OutputFileName=output_path,
+                        ExportFormat=17,  # PDF format
+                        OpenAfterExport=False,
+                        OptimizeFor=1,  # wdExportOptimizeForPrint = 1 (for quality)
+                        BitmapMissingFonts=True,
+                        DocStructureTags=False,
+                        CreateBookmarks=False
+                    )
                 
                 # Close document
                 doc.Close()
@@ -312,7 +343,9 @@ class DocumentPDFConverter:
                 word.Quit()
             except:
                 pass
-            self.log_conversion(filename, 'word_com', False, error=str(e))
+            error_msg = f"Word COM failed: {str(e)} | File: {filename}"
+            print(f"  [ERROR] {error_msg}")
+            self.log_conversion(filename, 'word_com', False, error=error_msg)
             return None
         finally:
             # Uninitialize COM for this thread
@@ -322,6 +355,8 @@ class DocumentPDFConverter:
         """Convert a single document to PDF using the best available method"""
         filename = os.path.basename(input_path)
         print(f"\nConverting: {filename}")
+        print(f"  [DEBUG] Full path: {input_path}")
+        print(f"  [DEBUG] File exists: {os.path.exists(input_path)}")
         
         if input_path.endswith('.docx'):
             # Try OfficeToPDF first (fastest and most reliable)

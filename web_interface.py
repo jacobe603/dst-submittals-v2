@@ -268,7 +268,7 @@ progress_manager = ProgressManager()
 # Configuration for upload
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'web_outputs'
-ALLOWED_EXTENSIONS = {'doc', 'docx', 'pdf', 'zip'}
+ALLOWED_EXTENSIONS = {'doc', 'docx', 'pdf', 'jpg', 'jpeg', 'png'}
 
 # Ensure directories exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -706,18 +706,18 @@ def upload_files():
                 filepath = os.path.join(temp_dir, filename)
                 file.save(filepath)
                 
-                # If it's a zip file, extract it
-                if filename.lower().endswith('.zip'):
-                    extract_dir = os.path.join(temp_dir, 'extracted')
-                    os.makedirs(extract_dir, exist_ok=True)
-                    if extract_zip_file(filepath, extract_dir):
-                        # Use extracted directory for processing
-                        temp_dir = extract_dir
-                    else:
-                        return jsonify({
-                            'success': False, 
-                            'error': f'Failed to extract zip file: {filename}'
-                        })
+                # ZIP file extraction disabled - functionality not working properly
+                # if filename.lower().endswith('.zip'):
+                #     extract_dir = os.path.join(temp_dir, 'extracted')
+                #     os.makedirs(extract_dir, exist_ok=True)
+                #     if extract_zip_file(filepath, extract_dir):
+                #         # Use extracted directory for processing
+                #         temp_dir = extract_dir
+                #     else:
+                #         return jsonify({
+                #             'success': False, 
+                #             'error': f'Failed to extract zip file: {filename}'
+                #         })
         
         # Get correlation ID for this request
         correlation_id = set_correlation_id()
@@ -897,27 +897,27 @@ def extract_tags():
                     'path': filepath
                 })
                 
-                # If it's a zip file, extract it
-                if filename.lower().endswith('.zip'):
-                    extract_dir = os.path.join(temp_dir, 'extracted')
-                    os.makedirs(extract_dir, exist_ok=True)
-                    if extract_zip_file(filepath, extract_dir):
-                        # Use extracted directory for processing
-                        temp_dir = extract_dir
-                        log_processing_stage('zip_extraction', 'success', {
-                            'zip_file': filename,
-                            'extract_dir': extract_dir
-                        })
-                        # Log manifest of extracted files
-                        if os.path.exists(extract_dir):
-                            extracted_files = [f for f in os.listdir(extract_dir) if os.path.isfile(os.path.join(extract_dir, f))]
-                            log_file_manifest(extract_dir, extracted_files)
-                    else:
-                        log_processing_stage('zip_extraction', 'failed', {'zip_file': filename})
-                        return jsonify({
-                            'success': False, 
-                            'error': f'Failed to extract zip file: {filename}'
-                        })
+                # ZIP file extraction disabled - functionality not working properly
+                # if filename.lower().endswith('.zip'):
+                #     extract_dir = os.path.join(temp_dir, 'extracted')
+                #     os.makedirs(extract_dir, exist_ok=True)
+                #     if extract_zip_file(filepath, extract_dir):
+                #         # Use extracted directory for processing
+                #         temp_dir = extract_dir
+                #         log_processing_stage('zip_extraction', 'success', {
+                #             'zip_file': filename,
+                #             'extract_dir': extract_dir
+                #         })
+                #         # Log manifest of extracted files
+                #         if os.path.exists(extract_dir):
+                #             extracted_files = [f for f in os.listdir(extract_dir) if os.path.isfile(os.path.join(extract_dir, f))]
+                #             log_file_manifest(extract_dir, extracted_files)
+                #     else:
+                #         log_processing_stage('zip_extraction', 'failed', {'zip_file': filename})
+                #         return jsonify({
+                #             'success': False, 
+                #             'error': f'Failed to extract zip file: {filename}'
+                #         })
         
         # Log final file manifest
         if os.path.exists(temp_dir):

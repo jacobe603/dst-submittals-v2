@@ -14,11 +14,13 @@ from docx import Document
 import docx2txt
 from PIL import Image
 
-# Import diagnostic logging functions
+# Import diagnostic logging functions and config
 try:
     from .logger import log_tag_extraction, log_json_snapshot, log_processing_stage
+    from .config import Config
 except ImportError:
     from logger import log_tag_extraction, log_json_snapshot, log_processing_stage
+    from config import Config
 
 class TagExtractor:
     def __init__(self, docs_path: str, use_filename_tags: bool = False):
@@ -34,6 +36,7 @@ class TagExtractor:
         self.tag_mapping = {}
         self.extraction_log = []
         self.use_filename_tags = use_filename_tags
+        self.config = Config()  # Load configuration for quality settings
         
     def log_extraction(self, filename: str, method: str, success: bool, tag: str = None, error: str = None):
         """Log extraction attempts"""
@@ -78,15 +81,19 @@ class TagExtractor:
         
         # Handle new format with " - " separator (e.g., "AHU-10 - Technical Data Sheet")
         # This is the primary format for tagged files
+        # IMPORTANT: Order matters - more specific patterns first to avoid partial matches
         dash_separated_patterns = [
             ' - PreciseLine Drawings',
             ' - Technical Data Sheet',
             ' - Item Summary',
+            ' - Fan Curve - Supply',     # Compound pattern for fan curves with supply designation
+            ' - Fan Curve - Return',     # Compound pattern for fan curves with return designation
+            ' - Fan Curve - Exhaust',    # Compound pattern for fan curves with exhaust designation
+            ' - Fan Curve',              # General fan curve pattern (must come after compound patterns)
             ' - Drawing', 
-            ' - Fan Curve',
-            ' - Supply',  # For fan curves
-            ' - Return',
-            ' - Exhaust'
+            ' - Supply',                 # For other supply-related files
+            ' - Return',                 # For other return-related files
+            ' - Exhaust'                 # For other exhaust-related files
         ]
         
         for pattern in dash_separated_patterns:
@@ -94,6 +101,9 @@ class TagExtractor:
                 # Extract everything before the pattern
                 tag = base_name.split(pattern)[0]
                 if tag.strip():
+                    # Enhanced debug logging for JPG files and compound patterns
+                    if filename.lower().endswith(('.jpg', '.jpeg', '.png')) or 'Fan Curve' in pattern:
+                        print(f"  [DEBUG] Pattern match: '{filename}' -> pattern '{pattern}' -> tag '{tag.strip()}'")
                     return tag.strip()
         
         # Handle legacy format with underscore separators
@@ -183,8 +193,8 @@ class TagExtractor:
             if image.mode != 'RGB':
                 image = image.convert('RGB')
             
-            # Save as PDF
-            image.save(pdf_path, 'PDF', resolution=100.0, quality=95)
+            # Save as PDF with configurable quality settings
+            image.save(pdf_path, 'PDF', resolution=float(self.config.pdf_resolution), quality=self.config.image_quality)
             
             print(f"  [CONVERTED] {os.path.basename(image_path)} -> {os.path.basename(pdf_path)}")
             return pdf_path
@@ -336,6 +346,12 @@ class TagExtractor:
                 # Enhanced diagnostic logging
                 log_tag_extraction(filename, 'filename', True, tag, ['filename_patterns'])
                 print(f"  [FILENAME] {filename} -> {tag}")
+                
+                # Convert JPG/PNG images to PDF if using filename-based extraction
+                if file_ext in ['.jpg', '.jpeg', '.png']:
+                    print(f"  [IMAGE] Converting {filename} to PDF for filename-based extraction...")
+                    self.convert_image_to_pdf(file_path)
+                
                 return tag
             else:
                 self.log_extraction(filename, 'filename', False, error="No filename pattern matched")

@@ -62,6 +62,22 @@ class Config:
             60
         )
         
+        # PDF Quality settings
+        self.pdf_resolution = self._get_env_int(
+            'DST_PDF_RESOLUTION',
+            300  # DPI for image-to-PDF conversion
+        )
+        
+        self.jpeg_quality = self._get_env_int(
+            'DST_JPEG_QUALITY', 
+            100  # Word COM export JPEG quality (0-100)
+        )
+        
+        self.image_quality = self._get_env_int(
+            'DST_IMAGE_QUALITY',
+            95  # PIL image quality for direct image conversion (0-100)
+        )
+        
         # Logging configuration
         self.log_level = self._get_env_str(
             'DST_LOG_LEVEL',

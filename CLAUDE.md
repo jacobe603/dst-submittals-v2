@@ -36,6 +36,11 @@ set DST_PDF_CONVERSION_MAPPING_FILE=custom_pdf_mapping.json
 set DST_CONVERSION_TIMEOUT=180
 set DST_LIBREOFFICE_TIMEOUT=90
 
+# Configure PDF quality settings (NEW in v2.1.0)
+set DST_PDF_RESOLUTION=300
+set DST_JPEG_QUALITY=100
+set DST_IMAGE_QUALITY=95
+
 # Set default documents path for development/testing
 set DST_DEFAULT_DOCS_PATH=C:\MyDocuments\HVAC_Submittals
 ```
@@ -48,6 +53,9 @@ set DST_DEFAULT_DOCS_PATH=C:\MyDocuments\HVAC_Submittals
 - `DST_PDF_CONVERSION_MAPPING_FILE`: JSON file for conversion tracking (default: pdf_conversion_mapping.json)
 - `DST_CONVERSION_TIMEOUT`: Conversion timeout in seconds (default: 120)
 - `DST_LIBREOFFICE_TIMEOUT`: LibreOffice timeout in seconds (default: 60)
+- `DST_PDF_RESOLUTION`: Image-to-PDF resolution in DPI (default: 300)
+- `DST_JPEG_QUALITY`: Word COM export JPEG quality 0-100 (default: 100)
+- `DST_IMAGE_QUALITY`: PIL image conversion quality 0-100 (default: 95)
 - `DST_DEFAULT_DOCS_PATH`: Default documents path for testing
 
 ### Running the Application

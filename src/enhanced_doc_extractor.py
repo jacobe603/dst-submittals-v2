@@ -258,12 +258,33 @@ def enhance_tag_mapping(tag_mapping: Dict[str, str], docs_path: str, no_pricing_
             if tag not in tag_groups:
                 tag_groups[tag] = []
             tag_groups[tag].append(filename)
+            # Enhanced debug logging for JPG files
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                print(f"  [DEBUG] JPG file mapped: {filename} -> tag: {tag}")
+        else:
+            # Log files without tags for debugging
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                print(f"  [DEBUG] JPG file WITHOUT tag: {filename}")
     
     # Sort tags (MAU first, then AHU, numerically)
-    sorted_tags = sorted(tag_groups.keys(), key=lambda x: (
-        x.startswith('AHU-'),  # MAU tags first (False comes before True)
-        x.replace('AHU-', '').replace('MAU-', '').zfill(10)  # Then numerical order
-    ))
+    def sort_key(tag):
+        """Custom sort key to handle equipment tags properly"""
+        # MAU tags first (False comes before True)
+        is_ahu = tag.startswith('AHU-')
+        
+        # Extract the numeric/alphanumeric suffix
+        suffix = tag.replace('AHU-', '').replace('MAU-', '')
+        
+        # Handle numeric suffixes (including 0) vs alphanumeric
+        try:
+            # Try to convert to integer for proper numeric sorting
+            numeric_part = int(suffix.split('-')[0])  # Handle cases like "M3 3-20-2025"
+            return (is_ahu, numeric_part, suffix)
+        except ValueError:
+            # Non-numeric suffix, use string sorting with padding
+            return (is_ahu, float('inf'), suffix.zfill(10))
+    
+    sorted_tags = sorted(tag_groups.keys(), key=sort_key)
     
     print(f"Processing {len(sorted_tags)} equipment tags: {sorted_tags}")
     
@@ -368,7 +389,11 @@ def enhance_tag_mapping(tag_mapping: Dict[str, str], docs_path: str, no_pricing_
             position += 1
             
             status = "[INCLUDED]" if include_file else "[EXCLUDED - PRICING]"
-            print(f"    {status} {filename} -> {file_data['display_title']} (Type: {file_data['file_type']})")
+            # Enhanced debug logging for JPG files
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                print(f"    {status} [JPG] {filename} -> {file_data['display_title']} (Type: {file_data['file_type']}) for tag: {tag}")
+            else:
+                print(f"    {status} {filename} -> {file_data['display_title']} (Type: {file_data['file_type']})")
     
     # Add cut sheets section
     cs_files = glob.glob(os.path.join(docs_path, "CS*.pdf"))
