@@ -231,6 +231,10 @@
             background: #f39c12;
         }
         
+        #getTagsBtn:hover {
+            background: #e67e22;
+        }
+        
         #getTagsBtn:disabled {
             background: #95a5a6;
             cursor: not-allowed;
@@ -873,11 +877,16 @@
                 </div>
             </div>
 
-            <button id="getTagsBtn" class="process-btn" disabled style="margin-bottom: 15px;">
-                <i class="fas fa-search"></i> Get Tags & Preview Structure
-            </button>
+            <!-- Get Tags Section -->
+            <div class="options-section">
+                <div class="generate-section" style="margin-top: 20px; text-align: center;">
+                    <button id="getTagsBtn" class="process-btn" disabled>
+                        <i class="fas fa-search"></i> Get Tags & Preview Structure
+                    </button>
+                </div>
+            </div>
 
-            <div id="structureSection" class="structure-section" style="display: none;">
+            <div id="structureSection" class="options-section" style="display: none;">
                 <div class="section-header" onclick="toggleStructureSection()">
                     <h3><i class="fas fa-list-ol"></i> PDF Structure Preview</h3>
                     <i id="structureSectionToggle" class="fas fa-chevron-down section-toggle"></i>
@@ -918,10 +927,10 @@
             </div>
 
             <!-- Cleanup Status Section -->
-            <div class="main-section">
+            <div class="options-section">
                 <div class="section-header" onclick="toggleCleanupSection()">
                     <h3><i class="fas fa-broom"></i> Cleanup Status</h3>
-                    <i id="cleanupSectionToggle" class="fas fa-chevron-down section-toggle"></i>
+                    <i id="cleanupSectionToggle" class="fas fa-chevron-down section-toggle collapsed"></i>
                 </div>
                 <div id="cleanupSectionContent" class="collapsible-content collapsed">
                     <p>Monitor disk usage and manage automatic cleanup settings:</p>

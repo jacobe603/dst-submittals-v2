@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: dst-gotenberg-local
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - GOTENBERG_LOG_LEVEL=INFO
+      - GOTENBERG_API_TIMEOUT=120s
+    networks:
+      - dst-local-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  dst-submittals:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dst-submittals-v2:local
+    container_name: dst-submittals-local
+    ports:
+      - "5001:5000"
+    depends_on:
+      gotenberg:
+        condition: service_healthy
+    environment:
+      - DST_GOTENBERG_URL=http://gotenberg:3000
+      - DST_QUALITY_MODE=high
+      - DST_MAX_OUTPUT_FILES=50
+      - DST_OUTPUT_RETENTION_DAYS=7
+      - DST_CLEANUP_ON_STARTUP=true
+      - DST_PERIODIC_CLEANUP_HOURS=24
+      - DST_CONVERSION_TIMEOUT=300
+      - DST_LOG_LEVEL=INFO
+      - DST_LOG_TO_FILE=true
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - TZ=America/Los_Angeles
+    volumes:
+      # Local development mounts
+      - ./web_outputs:/app/web_outputs
+      - ./uploads:/app/uploads
+      - ./test_v2_files:/app/documents
+    networks:
+      - dst-local-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/status-v2"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  dst-local-network:
+    driver: bridge
+    name: dst-local-network

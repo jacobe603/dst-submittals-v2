@@ -13,7 +13,7 @@ class Config:
     """Configuration manager with environment variable support"""
     
     # Application version
-    VERSION = "2.0.0"  # Major rewrite for Gotenberg
+    VERSION = "2.0.4-all-sections-fixed"  # All sections now use consistent container hierarchy
     
     def __init__(self):
         # Gotenberg service configuration
