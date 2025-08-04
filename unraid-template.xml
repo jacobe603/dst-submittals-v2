@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>DST-Submittals-V2</Name>
+  <Repository>ghcr.io/jacobe603/dst-submittals-v2:latest</Repository>
+  <Registry>https://ghcr.io/jacobe603/dst-submittals-v2</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/jacobe603/dst-submittals-v2/issues</Support>
+  <Project>https://github.com/jacobe603/dst-submittals-v2</Project>
+  <Overview>DST Submittals Generator V2 - Cross-platform HVAC submittal document generator with Gotenberg-based PDF conversion and modern web interface. Automatically identifies equipment tags, organizes documents, and creates professional PDF submittals with real-time progress tracking and cleanup management.</Overview>
+  <Category>Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:5000]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/jacobe603/dst-submittals-v2/main/unraid-template.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/jacobe603/dst-submittals-v2/main/templates/static/favicon.ico</Icon>
+  <ExtraParams>--health-cmd="curl -f http://localhost:5000/status-v2 || exit 1" --health-interval=30s --health-timeout=10s --health-start-period=30s --health-retries=3</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled>1725408000</DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>Gotenberg service (will be auto-configured)</Requires>
+  <Config Name="WebUI Port" Target="5000" Default="5000" Mode="tcp" Description="Web interface port" Type="Port" Display="always" Required="true" Mask="false">5000</Config>
+  <Config Name="App Data" Target="/app/config" Default="/mnt/user/appdata/dst-submittals-v2" Mode="rw" Description="Application configuration and data" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/dst-submittals-v2</Config>
+  <Config Name="Generated PDFs" Target="/app/web_outputs" Default="/mnt/user/dst-submittals/outputs" Mode="rw" Description="Generated PDF output directory" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/dst-submittals/outputs</Config>
+  <Config Name="Upload Staging" Target="/app/uploads" Default="/mnt/user/dst-submittals/uploads" Mode="rw" Description="Temporary upload staging area" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/dst-submittals/uploads</Config>
+  <Config Name="Documents Library" Target="/app/documents" Default="/mnt/user/dst-submittals/documents" Mode="rw" Description="Optional: Document library for easy access" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/dst-submittals/documents</Config>
+  <Config Name="Gotenberg URL" Target="DST_GOTENBERG_URL" Default="http://gotenberg:3000" Mode="" Description="Gotenberg service URL (use container name if on same network)" Type="Variable" Display="always" Required="true" Mask="false">http://gotenberg:3000</Config>
+  <Config Name="PDF Quality Mode" Target="DST_QUALITY_MODE" Default="high" Mode="" Description="PDF quality: fast, balanced, high, maximum" Type="Variable" Display="always" Required="false" Mask="false">high</Config>
+  <Config Name="Max Output Files" Target="DST_MAX_OUTPUT_FILES" Default="50" Mode="" Description="Maximum PDF files to keep (cleanup management)" Type="Variable" Display="always" Required="false" Mask="false">50</Config>
+  <Config Name="Retention Days" Target="DST_OUTPUT_RETENTION_DAYS" Default="30" Mode="" Description="Days to keep old PDFs (cleanup management)" Type="Variable" Display="always" Required="false" Mask="false">30</Config>
+  <Config Name="Cleanup on Startup" Target="DST_CLEANUP_ON_STARTUP" Default="true" Mode="" Description="Run cleanup when container starts" Type="Variable" Display="always" Required="false" Mask="false">true</Config>
+  <Config Name="Periodic Cleanup Hours" Target="DST_PERIODIC_CLEANUP_HOURS" Default="24" Mode="" Description="Hours between cleanup runs (0 to disable)" Type="Variable" Display="always" Required="false" Mask="false">24</Config>
+  <Config Name="Conversion Timeout" Target="DST_CONVERSION_TIMEOUT" Default="300" Mode="" Description="Document conversion timeout in seconds" Type="Variable" Display="advanced" Required="false" Mask="false">300</Config>
+  <Config Name="Log Level" Target="DST_LOG_LEVEL" Default="INFO" Mode="" Description="Logging level: DEBUG, INFO, WARNING, ERROR" Type="Variable" Display="advanced" Required="false" Mask="false">INFO</Config>
+  <Config Name="Enable File Logging" Target="DST_LOG_TO_FILE" Default="true" Mode="" Description="Enable logging to files" Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+  <Config Name="Flask Environment" Target="FLASK_ENV" Default="production" Mode="" Description="Flask environment mode" Type="Variable" Display="advanced" Required="false" Mask="false">production</Config>
+  <Config Name="Gotenberg Port" Target="3001" Default="3001" Mode="tcp" Description="Gotenberg service port (if running separately)" Type="Port" Display="advanced" Required="false" Mask="false">3001</Config>
+</Container>

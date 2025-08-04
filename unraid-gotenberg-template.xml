@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>Gotenberg-Service</Name>
+  <Repository>gotenberg/gotenberg:8</Repository>
+  <Registry>https://hub.docker.com/r/gotenberg/gotenberg</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/gotenberg/gotenberg/issues</Support>
+  <Project>https://gotenberg.dev/</Project>
+  <Overview>Gotenberg PDF conversion service - Required dependency for DST Submittals V2. Provides high-quality document conversion using LibreOffice and Chromium. Install this first, then install DST-Submittals-V2.</Overview>
+  <Category>Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:3000]/health</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/jacobe603/dst-submittals-v2/main/unraid-gotenberg-template.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/jacobe603/dst-submittals-v2/main/docs/gotenberg-icon.png</Icon>
+  <ExtraParams>--health-cmd="curl -f http://localhost:3000/health || exit 1" --health-interval=30s --health-timeout=10s --health-start-period=30s --health-retries=3</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled>1725408000</DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>Required for DST Submittals V2</Requires>
+  <Config Name="Gotenberg Port" Target="3000" Default="3000" Mode="tcp" Description="Gotenberg API port" Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="Log Level" Target="GOTENBERG_LOG_LEVEL" Default="INFO" Mode="" Description="Logging level: DEBUG, INFO, WARN, ERROR" Type="Variable" Display="always" Required="false" Mask="false">INFO</Config>
+  <Config Name="API Timeout" Target="GOTENBERG_API_TIMEOUT" Default="30s" Mode="" Description="API timeout duration" Type="Variable" Display="advanced" Required="false" Mask="false">30s</Config>
+  <Config Name="Disable Routes" Target="GOTENBERG_DISABLE_ROUTES" Default="" Mode="" Description="Comma-separated routes to disable" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+</Container>
