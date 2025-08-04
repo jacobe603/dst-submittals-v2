@@ -4,10 +4,45 @@ Complete guide for hosting DST Submittals Generator V2 on Unraid with Docker con
 
 ## 🚀 Quick Start (Recommended)
 
-### Option 1: Using Community Applications Templates
+### Option 1: Automated Build Script (Easiest)
+
+**One-command deployment:**
+```bash
+# SSH into your Unraid server and run:
+curl -sSL https://raw.githubusercontent.com/jacobe603/dst-submittals-v2/main/build-for-unraid.sh | bash
+```
+
+This script will:
+- ✅ Create all necessary directories
+- ✅ Clone the repository  
+- ✅ Build and start both containers
+- ✅ Verify services are healthy
+- ✅ Show you the access URL
+
+### Option 2: Manual Docker Compose
+
+1. **SSH into your Unraid server**
+2. **Create app directory:**
+   ```bash
+   mkdir -p /mnt/user/appdata/dst-submittals-v2
+   cd /mnt/user/appdata/dst-submittals-v2
+   ```
+3. **Clone repository:**
+   ```bash
+   git clone https://github.com/jacobe603/dst-submittals-v2.git .
+   ```
+4. **Start services:**
+   ```bash
+   docker compose -f unraid-docker-compose.yml up -d --build
+   ```
+5. **Access**: `http://YOUR-UNRAID-IP:5000`
+
+### Option 3: Using Community Applications Templates (Coming Soon)
+
+*Note: Docker image is being built. Templates will work once GitHub Actions completes the build.*
 
 1. **Install Community Applications** plugin if not already installed
-2. **Search for "DST Submittals"** in Community Applications
+2. **Search for "DST Submittals"** in Community Applications  
 3. **Install both containers:**
    - `Gotenberg-Service` (install first)
    - `DST-Submittals-V2`

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>DST-Submittals-V2</Name>
-  <Repository>ghcr.io/jacobe603/dst-submittals-v2:latest</Repository>
-  <Registry>https://ghcr.io/jacobe603/dst-submittals-v2</Registry>
+  <Repository>python:3.11-slim</Repository>
+  <Registry>https://hub.docker.com/_/python</Registry>
   <Network>bridge</Network>
   <MyIP/>
   <Shell>bash</Shell>
