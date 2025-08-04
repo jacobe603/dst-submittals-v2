@@ -4,7 +4,22 @@
     "allow": [
       "Bash(git rm:*)",
       "Bash(git push:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(chmod:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:gotenberg.dev)",
+      "Bash(pip3 install:*)",
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(python test:*)",
+      "Bash(python:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(ls:*)",
+      "Bash(docker exec:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

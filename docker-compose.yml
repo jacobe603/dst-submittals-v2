@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: gotenberg-service
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      # Optional: Add any Gotenberg-specific environment variables
+      - GOTENBERG_LOG_LEVEL=INFO
+    networks:
+      - dst-network
+
+  dst-submittals:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dst-submittals-v2
+    ports:
+      - "5000:5000"
+    depends_on:
+      - gotenberg
+    environment:
+      - DST_GOTENBERG_URL=http://gotenberg:3000
+      - DST_QUALITY_MODE=high
+      - FLASK_ENV=production
+    volumes:
+      # Mount directories for file processing
+      - ./web_outputs:/app/web_outputs
+      - ./uploads:/app/uploads
+    networks:
+      - dst-network
+    restart: unless-stopped
+
+networks:
+  dst-network:
+    driver: bridge

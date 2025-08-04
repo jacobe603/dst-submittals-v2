@@ -16,6 +16,7 @@ import threading
 import time
 import signal
 import atexit
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -32,7 +33,10 @@ from src.logger import (get_logger, set_correlation_id, log_file_upload, log_tag
                         log_pdf_structure, log_file_conversion, log_json_snapshot, 
                         log_file_manifest, log_processing_stage)
 from src.config import Config
-from src.exceptions import DSTError
+# from src.exceptions import DSTError  # V1 module archived
+from src.gotenberg_converter import GotenbergConverter
+from src.simple_tag_extractor import SimpleTagExtractor
+from src.cleanup_manager import CleanupManager
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dst-submittals-dev-key')
@@ -43,12 +47,17 @@ logger = get_logger('web_interface')
 # Global variables for server management
 server_thread = None
 progress_manager = None
+cleanup_manager = None
 shutdown_event = threading.Event()
 active_processes = []
 
+def generate_correlation_id() -> str:
+    """Generate a unique correlation ID for tracking operations"""
+    return str(uuid.uuid4())[:8]
+
 def cleanup_server():
     """Clean up server resources on shutdown"""
-    global progress_manager, active_processes
+    global progress_manager, active_processes, cleanup_manager
     
     logger.info("Starting server cleanup...")
     
@@ -87,7 +96,23 @@ def cleanup_server():
                 except Exception as e:
                     logger.error(f"Error terminating process: {e}")
     
-    # Clean up temporary directories
+    # Stop periodic cleanup and run final cleanup
+    if cleanup_manager:
+        logger.info("Stopping cleanup manager...")
+        try:
+            cleanup_manager.stop_periodic_cleanup()
+            # Run final cleanup on shutdown
+            final_cleanup = cleanup_manager.run_full_cleanup()
+            if final_cleanup.get('success'):
+                summary = final_cleanup.get('summary', {})
+                if summary.get('total_files_removed', 0) > 0 or summary.get('total_directories_removed', 0) > 0:
+                    logger.info(f"Final cleanup: removed {summary['total_files_removed']} files, "
+                               f"{summary['total_directories_removed']} directories "
+                               f"({summary['total_size_removed_mb']} MB)")
+        except Exception as e:
+            logger.warning(f"Error during cleanup manager shutdown: {e}")
+    
+    # Clean up remaining temporary directories (fallback)
     try:
         temp_base = tempfile.gettempdir()
         for item in os.listdir(temp_base):
@@ -290,10 +315,13 @@ def extract_zip_file(zip_path: str, extract_to: str) -> bool:
 
 def convert_documents_with_progress(documents_path: str, tag_mapping: Dict[str, str], correlation_id: str) -> Dict[str, str]:
     """Convert documents to PDF with real-time progress updates"""
-    from src.high_quality_pdf_converter import DocumentPDFConverter
+    # --- V1 IMPORTS ARCHIVED (see _archive_v1/) ---
+    # from src.high_quality_pdf_converter import DocumentPDFConverter
+    # --- END V1 IMPORTS ---
     
-    converter = DocumentPDFConverter(documents_path)
-    pdf_mapping = {}
+    # V1 functionality disabled - all conversions now use V2 Gotenberg
+    logger.error("V1 convert_documents_with_progress called - V1 functionality archived")
+    return {}
     
     # Get list of files to convert (exclude None values)
     files_to_convert = [(filename, tag) for filename, tag in tag_mapping.items() if tag is not None]
@@ -358,12 +386,17 @@ def run_dst_processing(documents_path: str, options: Dict[str, Any], correlation
     # Progress tracking should already be initialized by the caller
     
     try:
-        # Import processing modules using the correct names from main script
-        from src.tag_extractor import TagExtractor
-        from src.enhanced_doc_extractor import enhance_tag_mapping
-        from src.high_quality_pdf_converter import DocumentPDFConverter
-        from src.title_page_generator import TitlePageGenerator
-        from src.create_final_pdf import FinalPDFAssembler
+        # --- V1 IMPORTS ARCHIVED (see _archive_v1/) ---
+        # from src.tag_extractor import TagExtractor
+        # from src.enhanced_doc_extractor import enhance_tag_mapping
+        # from src.high_quality_pdf_converter import DocumentPDFConverter
+        # from src.title_page_generator import TitlePageGenerator
+        # from src.create_final_pdf import FinalPDFAssembler
+        # --- END V1 IMPORTS ---
+        
+        # V1 functionality disabled - redirect to V2
+        logger.error("V1 process_documents called - functionality archived. Use V2 instead.")
+        raise Exception("V1 processing has been archived. Please use the V2 interface.")
         
         # Set environment variables based on options
         progress_manager.update_progress(correlation_id, 'setup', 5, 
@@ -654,9 +687,196 @@ def progress_stream(correlation_id):
                            'Connection': 'keep-alive',
                            'Access-Control-Allow-Origin': '*'})
 
+@app.route('/upload-v2', methods=['POST'])
+def upload_files_v2():
+    """Handle file upload and processing with Gotenberg (V2)"""
+    from src.simple_processor import SimpleProcessor
+    
+    temp_dir = None
+    
+    try:
+        if 'files' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No files uploaded'})
+        
+        files = request.files.getlist('files')
+        if not files or all(f.filename == '' for f in files):
+            return jsonify({'status': 'error', 'message': 'No files selected'})
+        
+        # Get processing options
+        output_filename = request.form.get('output_filename', '').strip()
+        quality_mode = request.form.get('quality_mode', 'high')
+        
+        # Validate quality mode
+        if quality_mode not in ['fast', 'balanced', 'high', 'maximum']:
+            quality_mode = 'high'
+        
+        # Create temporary directory for processing
+        temp_dir = tempfile.mkdtemp(prefix='dst_web_v2_')
+        
+        # Save uploaded files
+        file_paths = []
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(temp_dir, filename)
+                file.save(filepath)
+                
+                # Handle ZIP files
+                if filename.lower().endswith('.zip'):
+                    zip_files = extract_zip_file(filepath, temp_dir)
+                    file_paths.extend(zip_files)
+                else:
+                    file_paths.append(filepath)
+        
+        if not file_paths:
+            return jsonify({'status': 'error', 'message': 'No valid files found'})
+        
+        # Generate correlation ID for tracking
+        correlation_id = generate_correlation_id()
+        
+        # Initialize progress tracking
+        progress_manager.start_operation(correlation_id)
+        
+        # Start processing in background
+        def process_in_background():
+            try:
+                processor = SimpleProcessor(progress_manager)
+                result = processor.process_files(
+                    file_paths=file_paths,
+                    correlation_id=correlation_id,
+                    output_filename=output_filename,
+                    quality_mode=quality_mode
+                )
+                
+                if result['success']:
+                    progress_manager.complete_operation(
+                        correlation_id,
+                        success=True,
+                        final_message=f"Submittal generated: {result['output_file']}",
+                        result_data={'output_file': result['output_file']}
+                    )
+                else:
+                    progress_manager.complete_operation(
+                        correlation_id,
+                        success=False,
+                        final_message=result.get('error', 'Unknown error')
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Processing failed for {correlation_id}: {e}")
+                progress_manager.complete_operation(
+                    correlation_id,
+                    success=False,
+                    final_message=f"Processing failed: {str(e)}"
+                )
+            finally:
+                # Cleanup temp directory
+                if temp_dir and os.path.exists(temp_dir):
+                    try:
+                        shutil.rmtree(temp_dir)
+                    except Exception as e:
+                        logger.warning(f"Failed to cleanup temp directory: {e}")
+        
+        # Start background processing
+        thread = threading.Thread(target=process_in_background)
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({
+            'status': 'processing',
+            'correlation_id': correlation_id,
+            'message': f'Processing {len(file_paths)} files with {quality_mode} quality...'
+        })
+        
+    except Exception as e:
+        logger.error(f"Upload error: {e}")
+        if temp_dir and os.path.exists(temp_dir):
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
+@app.route('/extract-tags-v2', methods=['POST'])
+def extract_tags_v2():
+    """Extract tags from uploaded files (V2 - filename-based)"""
+    from src.simple_processor import SimpleProcessor
+    
+    temp_dir = None
+    
+    try:
+        if 'files' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No files uploaded'})
+        
+        files = request.files.getlist('files')
+        if not files or all(f.filename == '' for f in files):
+            return jsonify({'status': 'error', 'message': 'No files selected'})
+        
+        # Create temporary directory
+        temp_dir = tempfile.mkdtemp(prefix='dst_tags_v2_')
+        
+        # Save uploaded files
+        file_paths = []
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(temp_dir, filename)
+                file.save(filepath)
+                
+                # Handle ZIP files
+                if filename.lower().endswith('.zip'):
+                    zip_files = extract_zip_file(filepath, temp_dir)
+                    file_paths.extend(zip_files)
+                else:
+                    file_paths.append(filepath)
+        
+        if not file_paths:
+            return jsonify({'status': 'error', 'message': 'No valid files found'})
+        
+        # Generate correlation ID for tracking
+        correlation_id = generate_correlation_id()
+        
+        # Extract tags
+        processor = SimpleProcessor()
+        result = processor.extract_tags_only(file_paths, correlation_id)
+        
+        if result['success']:
+            # Store structure in session for later use
+            session['tag_structure'] = result['structure']
+            session['file_paths'] = file_paths  # Keep temp files for processing
+            session['temp_dir'] = temp_dir  # Don't cleanup yet
+            
+            return jsonify({
+                'status': 'success',
+                'tags': result['tags'],
+                'structure': result['structure'],
+                'processing_order': result['processing_order'],
+                'total_equipment': result['total_equipment'],
+                'total_files': result['total_files']
+            })
+        else:
+            return jsonify({'status': 'error', 'message': result['error']})
+            
+    except Exception as e:
+        logger.error(f"Tag extraction error: {e}")
+        if temp_dir and os.path.exists(temp_dir):
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
 @app.route('/upload', methods=['POST'])
 def upload_files():
-    """Handle file upload and processing"""
+    """Handle file upload and processing - V1 ARCHIVED, redirects to V2"""
+    logger.warning("V1 /upload endpoint called - V1 functionality archived, should use /upload-v2")
+    return jsonify({
+        'success': False, 
+        'error': 'V1 upload functionality has been archived. Please use the V2 interface.',
+        'redirect': '/upload-v2'
+    }), 410  # 410 Gone status
     temp_dir = None
     
     try:
@@ -827,6 +1047,37 @@ def status():
         'shutdown_initiated': shutdown_event.is_set()
     })
 
+@app.route('/status-v2')
+def status_v2():
+    """Get V2 application status with Gotenberg integration"""
+    from src.simple_processor import SimpleProcessor
+    
+    try:
+        processor = SimpleProcessor()
+        service_status = processor.get_service_status()
+        
+        return jsonify({
+            'status': 'ready',
+            'version': '2.0.0',
+            'services': service_status,
+            'active_processes': len(active_processes),
+            'shutdown_initiated': shutdown_event.is_set(),
+            'features': {
+                'gotenberg_conversion': service_status['gotenberg']['status'] == 'healthy',
+                'filename_tagging': True,
+                'quality_modes': ['fast', 'balanced', 'high', 'maximum'],
+                'supported_formats': ['.doc', '.docx', '.pdf', '.jpg', '.jpeg', '.png', '.zip']
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'version': '2.0.0',
+            'error': str(e),
+            'active_processes': len(active_processes),
+            'shutdown_initiated': shutdown_event.is_set()
+        })
+
 @app.route('/extract-tags', methods=['POST'])
 def extract_tags():
     """
@@ -925,9 +1176,16 @@ def extract_tags():
             log_file_manifest(temp_dir, final_files)
         
         # Extract tags only (no PDF conversion)
-        from src.tag_extractor import TagExtractor
-        from src.enhanced_doc_extractor import enhance_tag_mapping
+        # --- V1 IMPORTS ARCHIVED (see _archive_v1/) ---
+        # from src.tag_extractor import TagExtractor
+        # from src.enhanced_doc_extractor import enhance_tag_mapping
+        # --- END V1 IMPORTS ---
+        
         from src.config import Config
+        
+        # V1 functionality disabled
+        logger.error("V1 extract_tags called - functionality archived")
+        raise Exception("V1 tag extraction has been archived. Please use the V2 interface.")
         
         logger.info(f"Extracting tags from: {temp_dir} (filename mode: {tagged_filenames})")
         log_processing_stage('tag_extraction', 'started', {
@@ -1291,6 +1549,167 @@ def shutdown_server():
             'active_processes': 0
         })
 
+@app.route('/api/v2/structure', methods=['GET'])
+def get_structure_v2():
+    """Get V2 structure from JSON file or extract from files"""
+    from src.simple_processor import SimpleProcessor
+    
+    try:
+        processor = SimpleProcessor()
+        
+        # Try to load from JSON first (single source of truth)
+        structure_data = processor.load_structure_from_json()
+        
+        if structure_data and structure_data.get('success'):
+            return jsonify({
+                'status': 'success',
+                'structure': structure_data['structure'],
+                'processing_order': structure_data['processing_order'],
+                'total_equipment': structure_data['total_equipment'],
+                'total_files': structure_data['total_files'],
+                'from_json': True,
+                'json_timestamp': structure_data.get('json_timestamp', '')
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'No structure data found. Please extract tags first.',
+                'from_json': False
+            })
+            
+    except Exception as e:
+        logger.error(f"Failed to get V2 structure: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/v2/save-structure', methods=['POST'])
+def save_structure_v2():
+    """Save user-edited structure to JSON file"""
+    from src.simple_processor import SimpleProcessor
+    
+    try:
+        request_data = request.get_json()
+        if not request_data or 'structure' not in request_data:
+            return jsonify({
+                'status': 'error',
+                'message': 'No structure data provided'
+            }), 400
+        
+        # Convert edited structure back to format for saving
+        structure_data = {
+            'success': True,
+            'structure': request_data['structure'],
+            'processing_order': request_data.get('processing_order', []),
+            'total_equipment': len(request_data['structure']),
+            'total_files': sum(len(eq_data.get('documents', [])) for eq_data in request_data['structure'].values())
+        }
+        
+        processor = SimpleProcessor()
+        correlation_id = request_data.get('correlation_id', 'user_edit')
+        
+        if processor.save_structure_to_json(structure_data, correlation_id):
+            return jsonify({
+                'status': 'success',
+                'message': 'Structure saved successfully',
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to save structure'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Failed to save V2 structure: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/v2/reload-structure', methods=['POST'])
+def reload_structure_v2():
+    """Reload structure from JSON file"""
+    from src.simple_processor import SimpleProcessor
+    
+    try:
+        processor = SimpleProcessor()
+        structure_data = processor.load_structure_from_json()
+        
+        if structure_data and structure_data.get('success'):
+            return jsonify({
+                'status': 'success',
+                'structure': structure_data['structure'],
+                'processing_order': structure_data['processing_order'],
+                'total_equipment': structure_data['total_equipment'],
+                'total_files': structure_data['total_files'],
+                'json_timestamp': structure_data.get('json_timestamp', ''),
+                'message': 'Structure reloaded from JSON'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'No valid JSON structure found'
+            })
+            
+    except Exception as e:
+        logger.error(f"Failed to reload V2 structure: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/cleanup/status', methods=['GET'])
+def cleanup_status():
+    """Get cleanup status and disk usage information"""
+    global cleanup_manager
+    
+    try:
+        if not cleanup_manager:
+            cleanup_manager = CleanupManager()
+        
+        status = cleanup_manager.get_cleanup_status()
+        
+        return jsonify({
+            'status': 'success',
+            'cleanup_status': status,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to get cleanup status: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/cleanup/run', methods=['POST'])
+def run_cleanup():
+    """Manually trigger cleanup operation"""
+    global cleanup_manager
+    
+    try:
+        if not cleanup_manager:
+            cleanup_manager = CleanupManager()
+        
+        result = cleanup_manager.run_full_cleanup()
+        
+        return jsonify({
+            'status': 'success' if result.get('success') else 'error',
+            'cleanup_result': result,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to run cleanup: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+# Error handlers
+
 @app.errorhandler(413)
 def request_entity_too_large(error):
     return jsonify({'success': False, 'error': 'File too large (max 500MB)'}), 413
@@ -1323,6 +1742,20 @@ if __name__ == '__main__':
     
     try:
         logger.info(f"Starting web interface on {args.host}:{args.port}")
+        
+        # Initialize cleanup manager and run startup cleanup
+        cleanup_manager = CleanupManager()
+        startup_result = cleanup_manager.startup_cleanup()
+        
+        if startup_result and startup_result.get('success'):
+            summary = startup_result.get('summary', {})
+            if summary.get('total_files_removed', 0) > 0 or summary.get('total_directories_removed', 0) > 0:
+                print(f"Startup cleanup: removed {summary['total_files_removed']} files, "
+                      f"{summary['total_directories_removed']} directories "
+                      f"({summary['total_size_removed_mb']} MB)")
+        
+        # Start periodic cleanup if enabled
+        cleanup_manager.start_periodic_cleanup()
         
         # Run the Flask app
         app.run(host=args.host, port=args.port, debug=args.debug, threaded=True)

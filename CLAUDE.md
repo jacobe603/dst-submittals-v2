@@ -234,6 +234,37 @@ shutdown_web_interface.ps1              # PowerShell script with detailed feedba
 - **EventSource Frontend**: JavaScript EventSource for real-time SSE consumption
 - **Memory Management**: Proper cleanup of resources, temporary files, and connections
 
+## 🧹 Cleanup Management
+
+### **Automatic PDF Cleanup**
+The system includes comprehensive cleanup management to prevent disk space accumulation:
+
+- **Startup Cleanup**: Runs automatically when web interface starts, removing old PDFs and temporary directories
+- **Periodic Cleanup**: Background task runs every 24 hours (configurable) to maintain disk space
+- **Retention Policies**: Both count-based (max 10 files) and age-based (7+ days) cleanup rules
+- **Manual Cleanup**: Users can trigger cleanup anytime via web interface
+- **Real-time Monitoring**: Web interface shows current disk usage and cleanup status
+
+### **Configuration Options**
+```bash
+# Cleanup settings
+set DST_MAX_OUTPUT_FILES=10          # Max PDFs to keep in web_outputs
+set DST_OUTPUT_RETENTION_DAYS=7      # Days to keep PDFs (age-based cleanup)
+set DST_CLEANUP_ON_STARTUP=true      # Run cleanup at startup
+set DST_PERIODIC_CLEANUP_HOURS=24    # Background cleanup interval (0 to disable)
+```
+
+### **Cleanup Targets**
+- **Generated PDFs**: Files in `web_outputs/` directory managed by retention policies
+- **Temporary Directories**: Orphaned `dst_*` temp directories older than 1 hour
+- **Processing Files**: Individual temp PDFs created during document conversion
+
+### **Web Interface Integration**
+- **Cleanup Status Section**: Collapsible section showing configuration and disk usage
+- **Manual Controls**: Refresh status and run cleanup buttons
+- **Real-time Updates**: Live disk usage monitoring and cleanup results
+- **API Endpoints**: RESTful endpoints for status (`/api/cleanup/status`) and manual cleanup (`/api/cleanup/run`)
+
 ## Entry Points
 
 **Main CLI:** `dst_submittals.py` - Primary command-line interface

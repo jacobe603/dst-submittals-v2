@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Configuration management for DST Submittals Generator
-Handles environment variables and default settings
+Configuration management for DST Submittals Generator V2
+Handles environment variables and default settings for Gotenberg-based conversion
 """
 
 import os
@@ -13,14 +13,17 @@ class Config:
     """Configuration manager with environment variable support"""
     
     # Application version
-    VERSION = "2.1.0"  # Major.Minor.Patch
+    VERSION = "2.0.0"  # Major rewrite for Gotenberg
     
     def __init__(self):
-        # Tool paths
-        self.officetopdf_path = self._get_env_path(
-            'DST_OFFICETOPDF_PATH',
-            r'C:\Users\jacob\Downloads\OfficeToPDF.exe'
+        # Gotenberg service configuration
+        self.gotenberg_url = self._get_env_str(
+            'DST_GOTENBERG_URL',
+            'http://localhost:3000'
         )
+        
+        # Legacy compatibility (for V1 status endpoint)
+        self.officetopdf_path = None  # V2 doesn't use OfficeToPDF
         
         # Output directories
         self.converted_pdfs_dir = self._get_env_str(
@@ -47,35 +50,35 @@ class Config:
         # Default test documents path (for development/testing)
         self.default_docs_path = self._get_env_path(
             'DST_DEFAULT_DOCS_PATH',
-            r'C:\Users\jacob\Claude\python-docx\documents\CS_Air_Handler_Light_Kit'
+            '/Users/jacobe/Library/CloudStorage/OneDrive-SchwabVollhaberLubrattInc/Documents/DST Converter'
         )
         
-        # Timeout settings (in seconds)
+        # Gotenberg quality settings
+        self.quality_mode = self._get_env_str(
+            'DST_QUALITY_MODE',
+            'high'  # fast, balanced, high, maximum
+        )
+        
+        # Conversion timeout settings (in seconds)
         self.conversion_timeout = self._get_env_int(
             'DST_CONVERSION_TIMEOUT',
-            120
+            300  # 5 minutes for Gotenberg conversions
         )
         
-        # LibreOffice timeout
-        self.libreoffice_timeout = self._get_env_int(
-            'DST_LIBREOFFICE_TIMEOUT',
-            60
-        )
-        
-        # PDF Quality settings
+        # PDF Quality settings for Gotenberg
         self.pdf_resolution = self._get_env_int(
             'DST_PDF_RESOLUTION',
-            300  # DPI for image-to-PDF conversion
+            300  # DPI for image resolution in PDFs
         )
         
-        self.jpeg_quality = self._get_env_int(
-            'DST_JPEG_QUALITY', 
-            100  # Word COM export JPEG quality (0-100)
+        self.pdf_quality = self._get_env_int(
+            'DST_PDF_QUALITY',
+            100  # PDF quality (0-100)
         )
         
-        self.image_quality = self._get_env_int(
-            'DST_IMAGE_QUALITY',
-            95  # PIL image quality for direct image conversion (0-100)
+        self.lossless_compression = self._get_env_bool(
+            'DST_LOSSLESS_COMPRESSION',
+            True  # Use lossless compression for technical drawings
         )
         
         # Logging configuration
@@ -118,7 +121,7 @@ class Config:
         # Tag extraction settings
         self.tag_extraction_mode = self._get_env_str(
             'DST_TAG_EXTRACTION_MODE',
-            'content'  # 'content' or 'filename'
+            'filename'  # 'filename' or 'content' (filename is simpler and faster)
         )
         
         self.enable_tag_editing = self._get_env_bool(
@@ -316,6 +319,12 @@ Development/Testing:
 
 Unit Type Configuration:
   DST_SUPPORTED_UNIT_TYPES      Comma-separated list of supported unit types (default: AHU,MAU,HP,CU,ACCU,WSHP,FCU)
+
+Cleanup Configuration:
+  DST_MAX_OUTPUT_FILES          Maximum number of PDF files to keep in web_outputs (default: 10)
+  DST_OUTPUT_RETENTION_DAYS     Number of days to keep PDF files (default: 7)
+  DST_CLEANUP_ON_STARTUP        Run cleanup at application startup (default: true)
+  DST_PERIODIC_CLEANUP_HOURS    Hours between periodic cleanup runs, 0 to disable (default: 24)
 
 Logging Configuration:
   DST_LOG_LEVEL                 Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) (default: INFO)

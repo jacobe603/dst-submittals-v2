@@ -64,12 +64,38 @@ def main():
         print()
     
     try:
-        # Import after path setup
-        from tag_extractor import TagExtractor
-        from enhanced_doc_extractor import enhance_tag_mapping
-        from high_quality_pdf_converter import DocumentPDFConverter
-        from title_page_generator import TitlePageGenerator
-        from create_final_pdf import FinalPDFAssembler
+        # --- V1 IMPORTS ARCHIVED (see _archive_v1/) ---
+        # from tag_extractor import TagExtractor
+        # from enhanced_doc_extractor import enhance_tag_mapping
+        # from high_quality_pdf_converter import DocumentPDFConverter
+        # from title_page_generator import TitlePageGenerator
+        # from create_final_pdf import FinalPDFAssembler
+        # --- END V1 IMPORTS ---
+        
+        # V1 CLI functionality disabled - use V2 web interface instead
+        print("\n" + "="*60)
+        print("  DST Submittals Generator V1 CLI has been ARCHIVED")
+        print("="*60)
+        print("The V1 Windows-specific CLI has been archived.")
+        print("Please use the V2 web interface instead:")
+        print("")
+        print("  1. Start the web interface:")
+        print("     python web_interface.py")
+        print("")  
+        print("  2. Open your browser to:")
+        print("     http://localhost:5000")
+        print("")
+        print("The V2 interface provides:")
+        print("- Cross-platform compatibility (Mac/Linux/Windows)")
+        print("- Gotenberg-based PDF conversion")
+        print("- Real-time progress tracking")
+        print("- Interactive document structure editing") 
+        print("- PDF bookmarks and navigation")
+        print("")
+        print("V1 code is preserved in: _archive_v1/")
+        print("="*60)
+        
+        return
         
         # Step 1: Extract tags
         if args.verbose:

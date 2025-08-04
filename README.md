@@ -10,6 +10,7 @@ A comprehensive Python tool for generating professional HVAC submittal documents
 - **Interactive PDF Structure**: Edit document order and titles before generation
 - **Network Access**: Access from other computers on your network
 - **Professional UI**: Responsive design with collapsible sections
+- **Cleanup Management**: Real-time disk usage monitoring and manual cleanup controls
 
 ### 🤖 **Intelligent Processing**
 - **Smart Tag Extraction**: Automatically identifies equipment tags (AHU-1, MAU-12, etc.)
@@ -23,6 +24,7 @@ A comprehensive Python tool for generating professional HVAC submittal documents
 - **Comprehensive Logging**: Structured logging with correlation IDs
 - **Error Recovery**: Robust error handling and user feedback
 - **Graceful Shutdown**: Proper resource cleanup and shutdown procedures
+- **Automatic Cleanup**: Intelligent disk space management with configurable retention policies
 
 ## 📋 Requirements
 
@@ -63,6 +65,7 @@ start_web_interface_network.bat
 3. Review and edit the PDF structure (optional)
 4. Click "Generate Submittal PDF" and watch real-time progress
 5. Download your professional submittal PDF
+6. Monitor disk usage and cleanup status in the Cleanup Management section
 
 ### Command Line Interface
 
@@ -166,6 +169,41 @@ The web interface provides access to all configuration options:
 4. **Check Dependencies**: Ensure Word or OfficeToPDF is properly installed
 5. **Network Performance**: Use local access for fastest processing
 
+## ⚙️ Configuration
+
+### Environment Variables
+
+The application supports various environment variables for customization:
+
+**Cleanup Management:**
+```bash
+set DST_MAX_OUTPUT_FILES=10          # Max PDFs to keep in web_outputs (default: 10)
+set DST_OUTPUT_RETENTION_DAYS=7      # Days to keep PDFs (default: 7)
+set DST_CLEANUP_ON_STARTUP=true      # Run cleanup at startup (default: true)
+set DST_PERIODIC_CLEANUP_HOURS=24    # Background cleanup interval, 0 to disable (default: 24)
+```
+
+**Processing Settings:**
+```bash
+set DST_CONVERSION_TIMEOUT=120       # Document conversion timeout in seconds
+set DST_LIBREOFFICE_TIMEOUT=60       # LibreOffice timeout in seconds
+set DST_PDF_RESOLUTION=300           # PDF image resolution in DPI
+set DST_JPEG_QUALITY=100             # Word COM export JPEG quality (0-100)
+```
+
+**Output Directories:**
+```bash
+set DST_CONVERTED_PDFS_DIR=converted_pdfs    # Converted PDFs directory
+set DST_TITLE_PAGES_DIR=title_pages          # Title pages directory
+```
+
+**Logging:**
+```bash
+set DST_LOG_LEVEL=INFO               # Logging level (DEBUG, INFO, WARNING, ERROR)
+set DST_LOG_TO_FILE=false            # Enable file logging
+set DST_LOG_FILE_PATH=dst_submittals.log     # Log file path
+```
+
 ## 🛠️ Troubleshooting
 
 ### Common Issues
@@ -187,6 +225,25 @@ python web_interface.py --port 8080
 **Missing Dependencies:**
 ```bash
 pip install --upgrade -r requirements.txt
+```
+
+**Disk Space Issues:**
+- Check the Cleanup Status section in the web interface
+- Run manual cleanup: click "Run Cleanup Now" button
+- Adjust cleanup settings via environment variables
+- Monitor `web_outputs/` directory size
+
+**Cleanup Not Working:**
+```bash
+# Check cleanup configuration
+echo $DST_MAX_OUTPUT_FILES
+echo $DST_OUTPUT_RETENTION_DAYS
+
+# Manual cleanup via API
+curl -X POST http://127.0.0.1:5000/api/cleanup/run
+
+# Check cleanup status
+curl http://127.0.0.1:5000/api/cleanup/status
 ```
 
 ### Getting Help

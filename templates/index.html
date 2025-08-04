@@ -457,6 +457,128 @@
             background: #5a6268;
         }
 
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .cleanup-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .cleanup-status {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .cleanup-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cleanup-item:last-child {
+            border-bottom: none;
+        }
+
+        .cleanup-label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .cleanup-value {
+            color: #666;
+            font-family: monospace;
+        }
+
+        .cleanup-section-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 15px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Processing Options Styling */
+        .optional {
+            font-weight: normal;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .engine-selection {
+            border: 2px solid #28a745 !important;
+        }
+
+        .engine-selection label {
+            margin-bottom: 0;
+        }
+
+        .engine-selection small {
+            color: #155724;
+            font-style: italic;
+        }
+
+        .checkbox-group small {
+            display: block;
+            color: #6c757d;
+            font-size: 0.85em;
+            margin-top: 3px;
+            margin-left: 25px;
+        }
+
+        .advanced-settings h4 {
+            transition: color 0.3s ease;
+        }
+
+        .advanced-settings h4:hover {
+            color: #495057 !important;
+        }
+
+        .advanced-settings h4 small {
+            font-weight: normal;
+            font-size: 0.8em;
+        }
+
+        .advanced-settings .form-group {
+            margin-bottom: 15px;
+        }
+
+        .advanced-settings .form-group small {
+            display: block;
+            color: #6c757d;
+            font-size: 0.85em;
+            margin-top: 3px;
+        }
+
+        .advanced-settings h5 {
+            color: #495057;
+            margin: 20px 0 10px 0;
+            font-size: 1em;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 5px;
+        }
+
         .structure-status {
             font-size: 14px;
             margin-left: auto;
@@ -663,47 +785,88 @@
                 </div>
                 <div id="optionsSectionContent" class="collapsible-content collapsed">
                     <div class="options-grid">
-                    <div class="option-group">
-                        <h4>Output Settings</h4>
-                        <div class="form-group">
-                            <label for="outputFilename">Output Filename (optional)</label>
-                            <input type="text" id="outputFilename" placeholder="Custom_Submittal.pdf">
+                        <!-- Essential Settings -->
+                        <div class="option-group">
+                            <h4><i class="fas fa-star"></i> Essential Settings</h4>
+                            <div class="form-group">
+                                <label for="outputFilename">Output Filename <span class="optional">(optional)</span></label>
+                                <input type="text" id="outputFilename" placeholder="My_Submittal.pdf">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="qualityMode">PDF Quality</label>
+                                <select id="qualityMode">
+                                    <option value="fast">Fast (150 DPI) - Quick processing</option>
+                                    <option value="balanced">Balanced (300 DPI) - Recommended</option>
+                                    <option value="high" selected>High (600 DPI) - Best quality</option>
+                                    <option value="maximum">Maximum (1200 DPI) - Highest quality</option>
+                                </select>
+                            </div>
+                            
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="noPricingFilter">
+                                <label for="noPricingFilter">
+                                    <i class="fas fa-dollar-sign"></i> Include pricing pages
+                                    <small>By default, pages with "$" symbols are excluded</small>
+                                </label>
+                            </div>
                         </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="noPricingFilter">
-                            <label for="noPricingFilter">Include pricing pages (disable price filter)</label>
-                        </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="taggedFilenames" checked>
-                            <label for="taggedFilenames">Extract tags from filenames (fast mode - bypass content scanning)</label>
-                        </div>
-                    </div>
 
-                    <div class="option-group">
-                        <h4>Conversion Settings</h4>
-                        <div class="form-group">
-                            <label for="officeToPdfPath">OfficeToPDF Path</label>
-                            <input type="text" id="officeToPdfPath" placeholder="C:\Tools\OfficeToPDF.exe">
+                        <!-- Processing Mode -->
+                        <div class="option-group">
+                            <h4><i class="fas fa-cog"></i> Processing Mode</h4>
+                            <div class="checkbox-group engine-selection" style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #28a745;">
+                                <input type="checkbox" id="useV2Engine" checked>
+                                <label for="useV2Engine">
+                                    <strong><i class="fas fa-rocket"></i> V2 Engine (Recommended)</strong>
+                                    <br><small>Fast filename-based processing with Gotenberg conversion</small>
+                                </label>
+                            </div>
+                            
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="taggedFilenames" checked>
+                                <label for="taggedFilenames">
+                                    <i class="fas fa-tags"></i> Extract tags from filenames
+                                    <small>Faster processing - bypasses document content scanning</small>
+                                </label>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="conversionTimeout">Conversion Timeout (seconds)</label>
-                            <input type="number" id="conversionTimeout" min="30" max="600" value="120">
-                        </div>
-                    </div>
 
-                    <div class="option-group">
-                        <h4>Directory Settings</h4>
-                        <div class="form-group">
-                            <label for="convertedPdfsDir">Converted PDFs Directory</label>
-                            <input type="text" id="convertedPdfsDir" placeholder="converted_pdfs">
-                        </div>
-                        <div class="form-group">
-                            <label for="titlePagesDir">Title Pages Directory</label>
-                            <input type="text" id="titlePagesDir" placeholder="title_pages">
-                        </div>
-                        <div class="form-group">
-                            <label for="tagMappingFile">Tag Mapping File</label>
-                            <input type="text" id="tagMappingFile" placeholder="tag_mapping_enhanced.json">
+                        <!-- Advanced Settings (Collapsible) -->
+                        <div class="option-group advanced-settings">
+                            <h4 onclick="toggleAdvancedSettings()" style="cursor: pointer; color: #6c757d;">
+                                <i id="advancedToggle" class="fas fa-chevron-right"></i> Advanced Settings 
+                                <small>(rarely needed)</small>
+                            </h4>
+                            <div id="advancedSettingsContent" style="display: none; margin-top: 15px;">
+                                <div class="form-group">
+                                    <label for="conversionTimeout">Conversion Timeout <span class="optional">(seconds)</span></label>
+                                    <input type="number" id="conversionTimeout" min="30" max="600" value="300" style="width: 100px;">
+                                    <small>Maximum time to wait for document conversion</small>
+                                </div>
+                                
+                                <div class="form-group" style="display: none;" id="officeToPdfGroup">
+                                    <label for="officeToPdfPath">OfficeToPDF Path <span class="optional">(Windows only)</span></label>
+                                    <input type="text" id="officeToPdfPath" placeholder="C:\Tools\OfficeToPDF.exe">
+                                    <small>Path to OfficeToPDF.exe for faster Word document conversion</small>
+                                </div>
+                                
+                                <div class="advanced-directories" style="display: none;">
+                                    <h5>Directory Settings</h5>
+                                    <div class="form-group">
+                                        <label for="convertedPdfsDir">Converted PDFs Directory</label>
+                                        <input type="text" id="convertedPdfsDir" placeholder="converted_pdfs">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="titlePagesDir">Title Pages Directory</label>
+                                        <input type="text" id="titlePagesDir" placeholder="title_pages">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tagMappingFile">Tag Mapping File</label>
+                                        <input type="text" id="tagMappingFile" placeholder="tag_mapping_enhanced.json">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -723,12 +886,22 @@
                 <p>Review and edit the PDF structure before generating the final document:</p>
                 
                 <div class="structure-controls">
-                    <button id="saveStructureBtn" class="btn btn-success">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
-                    <button id="resetStructureBtn" class="btn btn-secondary">
-                        <i class="fas fa-undo"></i> Reset to Original
-                    </button>
+                    <div id="v1Controls" style="display: none; gap: 15px;">
+                        <button id="saveStructureBtn" class="btn btn-success">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button id="resetStructureBtn" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i> Reset to Original
+                        </button>
+                    </div>
+                    <div id="v2JsonControls" style="display: flex; gap: 15px;">
+                        <button id="saveJsonBtn" class="btn btn-success">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button id="loadJsonBtn" class="btn btn-secondary">
+                            <i class="fas fa-download"></i> Load
+                        </button>
+                    </div>
                     <span id="structureStatus" class="structure-status"></span>
                 </div>
                 
@@ -741,6 +914,30 @@
                         <i class="fas fa-play"></i> Generate Submittal PDF
                     </button>
                 </div>
+                </div>
+            </div>
+
+            <!-- Cleanup Status Section -->
+            <div class="main-section">
+                <div class="section-header" onclick="toggleCleanupSection()">
+                    <h3><i class="fas fa-broom"></i> Cleanup Status</h3>
+                    <i id="cleanupSectionToggle" class="fas fa-chevron-down section-toggle"></i>
+                </div>
+                <div id="cleanupSectionContent" class="collapsible-content collapsed">
+                    <p>Monitor disk usage and manage automatic cleanup settings:</p>
+                    
+                    <div class="cleanup-controls">
+                        <button id="refreshCleanupBtn" class="btn btn-secondary">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <button id="runCleanupBtn" class="btn btn-warning">
+                            <i class="fas fa-trash"></i> Run Cleanup Now
+                        </button>
+                    </div>
+                    
+                    <div id="cleanupStatus" class="cleanup-status">
+                        <div class="loading">Loading cleanup status...</div>
+                    </div>
                 </div>
             </div>
 
@@ -842,6 +1039,65 @@
                     uploadToggle.classList.add('collapsed');
                 }
             }
+        }
+
+        // Convert V2 object structure to V1 array format for compatibility
+        function convertV2StructureToArray(v2Structure) {
+            const arrayStructure = [];
+            
+            // V2 structure format: {equipment_tag: {documents: [...], order: number}}
+            // V1 structure format: [{filename, type, include, display_title, file_type, ...}, ...]
+            
+            // Get equipment tags in order
+            const equipmentTags = Object.keys(v2Structure);
+            equipmentTags.sort((a, b) => {
+                const orderA = v2Structure[a].order || 999;
+                const orderB = v2Structure[b].order || 999;
+                return orderA - orderB;
+            });
+            
+            // Convert each equipment group to array items
+            equipmentTags.forEach(equipmentTag => {
+                const equipmentData = v2Structure[equipmentTag];
+                
+                // Add equipment title/header (like V1 title pages)
+                arrayStructure.push({
+                    filename: equipmentTag,
+                    type: 'title_page',
+                    include: true,
+                    display_title: equipmentTag,
+                    title: equipmentTag,
+                    file_type: 'Equipment Header',
+                    equipment_tag: equipmentTag,
+                    position: arrayStructure.length + 1  // Add position for display
+                });
+                
+                // Add documents for this equipment
+                if (equipmentData.documents && Array.isArray(equipmentData.documents)) {
+                    equipmentData.documents.forEach(doc => {
+                        // Format the document type for display
+                        const displayType = (doc.type || 'document')
+                            .replace(/_/g, ' ')  // Replace all underscores with spaces
+                            .replace(/\b\w/g, l => l.toUpperCase());  // Title case
+                        
+                        arrayStructure.push({
+                            filename: doc.filename,
+                            type: 'document',
+                            include: true,
+                            display_title: doc.filename,
+                            title: doc.filename,
+                            file_type: displayType,
+                            path: doc.path,
+                            equipment_tag: equipmentTag,
+                            position: arrayStructure.length + 1,  // Add position for display
+                            // Add the original doc type for reference
+                            original_type: doc.type
+                        });
+                    });
+                }
+            });
+            
+            return arrayStructure;
         }
 
         function displayFiles() {
@@ -951,6 +1207,34 @@
             }
         }
 
+        function toggleCleanupSection() {
+            const content = document.getElementById('cleanupSectionContent');
+            const toggle = document.getElementById('cleanupSectionToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');  
+                toggle.classList.remove('collapsed');
+                // Load cleanup status when section is opened
+                loadCleanupStatus();
+            } else {
+                content.classList.add('collapsed');
+                toggle.classList.add('collapsed');
+            }
+        }
+
+        function toggleAdvancedSettings() {
+            const content = document.getElementById('advancedSettingsContent');
+            const toggle = document.getElementById('advancedToggle');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.className = 'fas fa-chevron-down';
+            } else {
+                content.style.display = 'none';
+                toggle.className = 'fas fa-chevron-right';
+            }
+        }
+
         // Global variables for progress tracking
         let currentEventSource = null;
         let currentCorrelationId = null;
@@ -959,6 +1243,48 @@
         getTagsBtn.addEventListener('click', getTagsAndStructure);
         saveStructureBtn.addEventListener('click', saveStructure);
         resetStructureBtn.addEventListener('click', resetStructure);
+        
+        // V2 JSON management event listeners
+        const saveJsonBtn = document.getElementById('saveJsonBtn');
+        const loadJsonBtn = document.getElementById('loadJsonBtn');
+        const v2JsonControls = document.getElementById('v2JsonControls');
+        const v1Controls = document.getElementById('v1Controls');
+        
+        if (saveJsonBtn) saveJsonBtn.addEventListener('click', saveStructureToJson);
+        if (loadJsonBtn) loadJsonBtn.addEventListener('click', loadStructureFromJson);
+        
+        // Cleanup management event listeners
+        const refreshCleanupBtn = document.getElementById('refreshCleanupBtn');
+        const runCleanupBtn = document.getElementById('runCleanupBtn');
+        
+        if (refreshCleanupBtn) refreshCleanupBtn.addEventListener('click', loadCleanupStatus);
+        if (runCleanupBtn) runCleanupBtn.addEventListener('click', runCleanupNow);
+        
+        // Show/hide V1/V2 controls based on engine selection
+        const useV2Engine = document.getElementById('useV2Engine');
+        if (useV2Engine) {
+            useV2Engine.addEventListener('change', function() {
+                if (v2JsonControls && v1Controls) {
+                    if (this.checked) {
+                        v2JsonControls.style.display = 'flex';
+                        v1Controls.style.display = 'none';
+                    } else {
+                        v2JsonControls.style.display = 'none';
+                        v1Controls.style.display = 'flex';
+                    }
+                }
+            });
+            // Initialize on page load
+            if (v2JsonControls && v1Controls) {
+                if (useV2Engine.checked) {
+                    v2JsonControls.style.display = 'flex';
+                    v1Controls.style.display = 'none';
+                } else {
+                    v2JsonControls.style.display = 'none';
+                    v1Controls.style.display = 'flex';
+                }
+            }
+        }
 
         // Get tags and load structure
         async function getTagsAndStructure() {
@@ -979,24 +1305,44 @@
                 formData.append('tagged_filenames', document.getElementById('taggedFilenames').checked);
                 
                 // Extract tags only (no PDF processing)
-                const response = await fetch('/extract-tags', {
+                // Choose endpoint based on V2 toggle
+                const useV2 = document.getElementById('useV2Engine').checked;
+                const extractEndpoint = useV2 ? '/extract-tags-v2' : '/extract-tags';
+                
+                const response = await fetch(extractEndpoint, {
                     method: 'POST',
                     body: formData
                 });
                 
                 const result = await response.json();
                 
-                if (result.success) {
-                    // Structure is already loaded from the response, update the UI
-                    currentPdfStructure = result.pdf_structure;
-                    originalPdfStructure = JSON.parse(JSON.stringify(result.pdf_structure)); // Deep copy
-                    displayStructure();
-                    structureSection.style.display = 'block';
-                    processBtn.disabled = false;  // Enable generate button when structure is loaded via Get Tags
-                    updateSaveButtonState(); // Set initial button state when structure loads
-                    showStructureStatus(`Found ${result.tags_found} tagged files in ${result.equipment_groups} equipment groups`, 'success');
+                if (useV2) {
+                    // V2 response format
+                    if (result.status === 'success') {
+                        // Convert V2 object structure to V1 array format for compatibility
+                        currentPdfStructure = convertV2StructureToArray(result.structure);
+                        originalPdfStructure = JSON.parse(JSON.stringify(currentPdfStructure)); // Deep copy
+                        displayStructure();
+                        structureSection.style.display = 'block';
+                        processBtn.disabled = false;  // Enable generate button when structure is loaded via Get Tags
+                        updateSaveButtonState(); // Set initial button state when structure loads
+                        showStructureStatus(`Found ${result.total_files} files in ${result.total_equipment} equipment groups`, 'success');
+                    } else {
+                        throw new Error(result.message || 'Failed to extract tags');
+                    }
                 } else {
-                    throw new Error(result.error || 'Failed to extract tags');
+                    // V1 response format
+                    if (result.success) {
+                        currentPdfStructure = result.pdf_structure;
+                        originalPdfStructure = JSON.parse(JSON.stringify(result.pdf_structure)); // Deep copy
+                        displayStructure();
+                        structureSection.style.display = 'block';
+                        processBtn.disabled = false;  // Enable generate button when structure is loaded via Get Tags
+                        updateSaveButtonState(); // Set initial button state when structure loads
+                        showStructureStatus(`Found ${result.tags_found} tagged files in ${result.equipment_groups} equipment groups`, 'success');
+                    } else {
+                        throw new Error(result.error || 'Failed to extract tags');
+                    }
                 }
                 
             } catch (error) {
@@ -1114,12 +1460,28 @@
 
         // Update save button visual state based on changes
         function updateSaveButtonState() {
-            if (hasUnsavedChanges()) {
-                saveStructureBtn.classList.remove('no-changes');
-                saveStructureBtn.classList.add('has-changes');
-            } else {
-                saveStructureBtn.classList.remove('has-changes');
-                saveStructureBtn.classList.add('no-changes');
+            const hasChanges = hasUnsavedChanges();
+            
+            // Update V1 button
+            if (saveStructureBtn) {
+                if (hasChanges) {
+                    saveStructureBtn.classList.remove('no-changes');
+                    saveStructureBtn.classList.add('has-changes');
+                } else {
+                    saveStructureBtn.classList.remove('has-changes');
+                    saveStructureBtn.classList.add('no-changes');
+                }
+            }
+            
+            // Update V2 button with same styling
+            if (saveJsonBtn) {
+                if (hasChanges) {
+                    saveJsonBtn.classList.remove('no-changes');
+                    saveJsonBtn.classList.add('has-changes');
+                } else {
+                    saveJsonBtn.classList.remove('has-changes');
+                    saveJsonBtn.classList.add('no-changes');
+                }
             }
         }
 
@@ -1184,6 +1546,109 @@
             }, 5000);
         }
 
+        // V2 JSON Management Functions
+        async function saveStructureToJson() {
+            try {
+                saveJsonBtn.disabled = true;
+                saveJsonBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                
+                // Convert current structure back to V2 format
+                const v2Structure = convertArrayToV2Structure(currentPdfStructure);
+                
+                const response = await fetch('/api/v2/save-structure', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        structure: v2Structure.structure,
+                        processing_order: v2Structure.processing_order,
+                        correlation_id: 'user_save_' + Date.now()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Update original structure to match current (no unsaved changes)
+                    originalPdfStructure = JSON.parse(JSON.stringify(currentPdfStructure));
+                    updateSaveButtonState(); // Update button state after successful save
+                    showStructureStatus('Structure saved to JSON successfully', 'success');
+                } else {
+                    throw new Error(result.message || 'Failed to save structure');
+                }
+                
+            } catch (error) {
+                console.error('Failed to save structure to JSON:', error);
+                showStructureStatus('Error saving to JSON: ' + error.message, 'error');
+            } finally {
+                saveJsonBtn.disabled = false;
+                saveJsonBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+            }
+        }
+
+        async function loadStructureFromJson() {
+            try {
+                loadJsonBtn.disabled = true;
+                loadJsonBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                
+                const response = await fetch('/api/v2/reload-structure', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Convert V2 structure to array format for display
+                    currentPdfStructure = convertV2StructureToArray(result.structure);
+                    originalPdfStructure = JSON.parse(JSON.stringify(currentPdfStructure)); // Deep copy
+                    displayStructure();
+                    updateSaveButtonState();
+                    showStructureStatus(`Loaded from JSON (${result.json_timestamp || 'unknown time'})`, 'success');
+                } else {
+                    throw new Error(result.message || 'Failed to load structure');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load structure from JSON:', error);
+                showStructureStatus('Error loading from JSON: ' + error.message, 'error');
+            } finally {
+                loadJsonBtn.disabled = false;
+                loadJsonBtn.innerHTML = '<i class="fas fa-download"></i> Load';
+            }
+        }
+
+        // Convert array structure back to V2 object structure
+        function convertArrayToV2Structure(arrayStructure) {
+            const v2Structure = {};
+            const processingOrder = [];
+            let currentEquipment = null;
+            
+            for (const item of arrayStructure) {
+                if (item.type === 'title_page') {
+                    currentEquipment = item.tag || item.display_title;
+                    if (!processingOrder.includes(currentEquipment)) {
+                        processingOrder.push(currentEquipment);
+                    }
+                    v2Structure[currentEquipment] = {
+                        order: processingOrder.length,
+                        documents: []
+                    };
+                } else if (item.type === 'document' && currentEquipment) {
+                    v2Structure[currentEquipment].documents.push({
+                        filename: item.filename || item.display_title,
+                        type: item.file_type?.toLowerCase().replace(/\s+/g, '_') || 'other',
+                        path: item.converted_path || item.filename
+                    });
+                }
+            }
+            
+            return {
+                structure: v2Structure,
+                processing_order: processingOrder
+            };
+        }
+
         // Process files
         processBtn.addEventListener('click', processFiles);
 
@@ -1227,8 +1692,17 @@
                 formData.append('DST_TITLE_PAGES_DIR', document.getElementById('titlePagesDir').value);
                 formData.append('DST_TAG_MAPPING_FILE', document.getElementById('tagMappingFile').value);
 
+                // Choose endpoint based on V2 toggle
+                const useV2 = document.getElementById('useV2Engine').checked;
+                const uploadEndpoint = useV2 ? '/upload-v2' : '/upload';
+                
+                // Add V2-specific options
+                if (useV2) {
+                    formData.append('quality_mode', document.getElementById('qualityMode').value);
+                }
+
                 // Start upload
-                const response = await fetch('/upload', {
+                const response = await fetch(uploadEndpoint, {
                     method: 'POST',
                     body: formData
                 });
@@ -1236,12 +1710,22 @@
                 const result = await response.json();
                 // Upload completed successfully
 
-                if (result.success && result.correlation_id) {
-                    // Start real-time progress tracking
-                    currentCorrelationId = result.correlation_id;
-                    startProgressTracking(result.correlation_id);
+                if (useV2) {
+                    // V2 response format
+                    if (result.status === 'processing' && result.correlation_id) {
+                        currentCorrelationId = result.correlation_id;
+                        startProgressTracking(result.correlation_id);
+                    } else {
+                        throw new Error(result.message || 'Upload failed');
+                    }
                 } else {
-                    throw new Error(result.error || 'Upload failed');
+                    // V1 response format
+                    if (result.success && result.correlation_id) {
+                        currentCorrelationId = result.correlation_id;
+                        startProgressTracking(result.correlation_id);
+                    } else {
+                        throw new Error(result.error || 'Upload failed');
+                    }
                 }
 
             } catch (error) {
@@ -1402,8 +1886,8 @@
                         <i class="fas fa-check-circle"></i> 
                         Processing completed successfully!
                         <div class="completion-details">
-                            <div>Found ${result.tags_found} equipment tags</div>
-                            <div>Created ${result.equipment_groups} equipment groups</div>
+                            <div>Found ${result.total_files} files in ${(result.equipment_tags || []).length} equipment groups</div>
+                            <div>Equipment: ${(result.equipment_tags || []).join(', ')}</div>
                             <div>Duration: ${Math.round(data.duration)}s</div>
                         </div>
                         <br>
@@ -1427,6 +1911,107 @@
 
             // Clean up
             currentCorrelationId = null;
+        }
+
+        // Cleanup status functions
+        async function loadCleanupStatus() {
+            const statusDiv = document.getElementById('cleanupStatus');
+            statusDiv.innerHTML = '<div class="loading">Loading cleanup status...</div>';
+            
+            try {
+                const response = await fetch('/api/cleanup/status');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    displayCleanupStatus(result.cleanup_status);
+                } else {
+                    statusDiv.innerHTML = `<div class="error">Failed to load cleanup status: ${result.message}</div>`;
+                }
+            } catch (error) {
+                console.error('Failed to load cleanup status:', error);
+                statusDiv.innerHTML = '<div class="error">Failed to load cleanup status</div>';
+            }
+        }
+        
+        function displayCleanupStatus(status) {
+            const statusDiv = document.getElementById('cleanupStatus');
+            const config = status.configuration;
+            const webOutputs = status.web_outputs;
+            
+            let html = `
+                <div class="cleanup-section-title">Configuration</div>
+                <div class="cleanup-item">
+                    <span class="cleanup-label">Max Output Files:</span>
+                    <span class="cleanup-value">${config.max_output_files}</span>
+                </div>
+                <div class="cleanup-item">
+                    <span class="cleanup-label">Retention Days:</span>
+                    <span class="cleanup-value">${config.retention_days}</span>
+                </div>
+                <div class="cleanup-item">
+                    <span class="cleanup-label">Cleanup on Startup:</span>
+                    <span class="cleanup-value">${config.cleanup_on_startup ? 'Enabled' : 'Disabled'}</span>
+                </div>
+                <div class="cleanup-item">
+                    <span class="cleanup-label">Periodic Cleanup:</span>
+                    <span class="cleanup-value">${config.periodic_cleanup_hours > 0 ? config.periodic_cleanup_hours + ' hours' : 'Disabled'}</span>
+                </div>
+                <div class="cleanup-item">
+                    <span class="cleanup-label">Periodic Task Running:</span>
+                    <span class="cleanup-value">${status.periodic_cleanup_running ? 'Yes' : 'No'}</span>
+                </div>
+                
+                <div class="cleanup-section-title">Web Outputs Directory</div>
+            `;
+            
+            if (webOutputs.exists) {
+                html += `
+                    <div class="cleanup-item">
+                        <span class="cleanup-label">File Count:</span>
+                        <span class="cleanup-value">${webOutputs.file_count}</span>
+                    </div>
+                    <div class="cleanup-item">
+                        <span class="cleanup-label">Total Size:</span>
+                        <span class="cleanup-value">${webOutputs.total_mb} MB</span>
+                    </div>
+                    <div class="cleanup-item">
+                        <span class="cleanup-label">Path:</span>
+                        <span class="cleanup-value">${webOutputs.path}</span>
+                    </div>
+                `;
+            } else {
+                html += '<div class="cleanup-item"><span class="cleanup-label">Status:</span><span class="cleanup-value">Directory does not exist</span></div>';
+            }
+            
+            statusDiv.innerHTML = html;
+        }
+        
+        async function runCleanupNow() {
+            const button = document.getElementById('runCleanupBtn');
+            const originalText = button.innerHTML;
+            
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+            
+            try {
+                const response = await fetch('/api/cleanup/run', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    const summary = result.cleanup_result.summary;
+                    alert(`Cleanup completed successfully!\n\nFiles removed: ${summary.total_files_removed}\nDirectories removed: ${summary.total_directories_removed}\nSpace freed: ${summary.total_size_removed_mb} MB`);
+                    // Refresh the status
+                    loadCleanupStatus();
+                } else {
+                    alert(`Cleanup failed: ${result.message}`);
+                }
+            } catch (error) {
+                console.error('Failed to run cleanup:', error);
+                alert('Failed to run cleanup');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
         }
 
         // Load application status on page load
