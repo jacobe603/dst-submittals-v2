@@ -13,7 +13,7 @@ class Config:
     """Configuration manager with environment variable support"""
     
     # Application version
-    VERSION = "2.0.5-tag-special-chars"  # Fixed tag extraction to preserve special characters and bookmark generation
+    VERSION = "2.0.6-filename-preservation"  # Fixed filename sanitization removing special chars from equipment tags like BCU-1,2
     
     def __init__(self):
         # Gotenberg service configuration
