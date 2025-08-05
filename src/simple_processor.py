@@ -532,7 +532,7 @@ class SimpleProcessor:
                 'correlation_id': correlation_id
             }
     
-    def extract_tags_only(self, file_paths: List[str], correlation_id: str = None) -> Dict[str, Any]:
+    def extract_tags_only(self, file_paths: List[str], correlation_id: str = None, original_filename_map: Dict[str, str] = None) -> Dict[str, Any]:
         """
         Extract tags from files without conversion (for preview)
         Auto-saves results to JSON for use as single source of truth
@@ -540,12 +540,13 @@ class SimpleProcessor:
         Args:
             file_paths: List of file paths to analyze
             correlation_id: Optional correlation ID for tracking
+            original_filename_map: Optional mapping of secure filename to original filename
         
         Returns:
             Dict with tag extraction results
         """
         try:
-            equipment_groups = self.tag_extractor.extract_tags_from_files(file_paths)
+            equipment_groups = self.tag_extractor.extract_tags_from_files(file_paths, original_filename_map)
             processing_order = self.tag_extractor.get_processing_order(equipment_groups)
             
             # Create structure for web interface
