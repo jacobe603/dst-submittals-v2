@@ -38,21 +38,22 @@ class SimpleTagExtractor:
         # Handle both hyphen (AHU-1) and underscore (AHU_1) formats for secure_filename compatibility
         # Order matters: longer/more specific patterns first to avoid partial matches
         # NOTE: CS (cut sheet) patterns are intentionally excluded - they should not get tags
+        # Updated patterns to allow special characters like commas, periods, parentheses
         self.tag_patterns = [
-            r'(OAHU[-_][A-Z0-9]+)',      # Outdoor Air Handling Unit (must come before AHU)
-            r'(WSHP[-_][A-Z0-9]+)',      # Water Source Heat Pump  
-            r'(DOAS[-_][A-Z0-9]+)',      # Dedicated Outdoor Air System
-            r'(BCU[-_][A-Z0-9]+)',       # Blower Coil Unit (must come before BC)
-            r'(AHU[-_][A-Z0-9]+)',       # Air Handling Unit (AHU-1, AHU_1, AHU-D4, etc.)
-            r'(MAU[-_][A-Z0-9]+)',       # Makeup Air Unit  
-            r'(RTU[-_][A-Z0-9]+)',       # Rooftop Unit
-            r'(FCU[-_][A-Z0-9]+)',       # Fan Coil Unit
-            r'(HP[-_][A-Z0-9]+)',        # Heat Pump
-            r'(FC[-_][A-Z0-9]+)',        # Fan Coil
-            r'(BC[-_][A-Z0-9]+)',        # Blower Coil
-            r'(CH[-_][A-Z0-9]+)',        # Chiller
+            r'(OAHU[-_][A-Z0-9,.\(\)\s]+)',      # Outdoor Air Handling Unit (must come before AHU)
+            r'(WSHP[-_][A-Z0-9,.\(\)\s]+)',      # Water Source Heat Pump  
+            r'(DOAS[-_][A-Z0-9,.\(\)\s]+)',      # Dedicated Outdoor Air System
+            r'(BCU[-_][A-Z0-9,.\(\)\s]+)',       # Blower Coil Unit (must come before BC)
+            r'(AHU[-_][A-Z0-9,.\(\)\s]+)',       # Air Handling Unit (AHU-1, AHU_1, AHU-D4, etc.)
+            r'(MAU[-_][A-Z0-9,.\(\)\s]+)',       # Makeup Air Unit  
+            r'(RTU[-_][A-Z0-9,.\(\)\s]+)',       # Rooftop Unit
+            r'(FCU[-_][A-Z0-9,.\(\)\s]+)',       # Fan Coil Unit
+            r'(HP[-_][A-Z0-9,.\(\)\s]+)',        # Heat Pump
+            r'(FC[-_][A-Z0-9,.\(\)\s]+)',        # Fan Coil
+            r'(BC[-_][A-Z0-9,.\(\)\s]+)',        # Blower Coil
+            r'(CH[-_][A-Z0-9,.\(\)\s]+)',        # Chiller
             # Generic catch-all but exclude CS patterns (cut sheets should have no tag)
-            r'(?!CS)(^[A-Z]+[A-Z0-9]*[-_][A-Z0-9]+)',  
+            r'(?!CS)(^[A-Z]+[A-Z0-9]*[-_][A-Z0-9,.\(\)\s]+)',  
         ]
         
         # Document type classification patterns (based on your specifications)
@@ -136,6 +137,8 @@ class SimpleTagExtractor:
             match = pattern.search(base_name)
             if match:
                 tag = match.group(1).upper()
+                # Strip any trailing spaces that might have been captured
+                tag = tag.rstrip()
                 logger.debug(f"Found tag '{tag}' in filename '{filename}'")
                 return tag
         
@@ -211,12 +214,13 @@ class SimpleTagExtractor:
         else:
             return 'other'
     
-    def extract_tags_from_files(self, file_paths: List[str]) -> Dict[str, Dict[str, List[str]]]:
+    def extract_tags_from_files(self, file_paths: List[str], original_filename_map: Dict[str, str] = None) -> Dict[str, Dict[str, List[str]]]:
         """
         Extract tags from multiple files and organize by equipment
         
         Args:
             file_paths: List of file paths to process
+            original_filename_map: Optional mapping of secure filename to original filename
         
         Returns:
             Dict organized as: {equipment_tag: {doc_type: [file_paths]}}
@@ -242,13 +246,19 @@ class SimpleTagExtractor:
             
             filename = os.path.basename(file_path)
             
+            # Use original filename for tag extraction if available
+            extraction_filename = filename
+            if original_filename_map and filename in original_filename_map:
+                extraction_filename = original_filename_map[filename]
+                logger.debug(f"Using original filename '{extraction_filename}' instead of '{filename}' for tag extraction")
+            
             # Skip unsupported file types
-            if not self.is_supported_file(filename):
-                logger.debug(f"Skipping unsupported file: {filename}")
+            if not self.is_supported_file(extraction_filename):
+                logger.debug(f"Skipping unsupported file: {extraction_filename}")
                 continue
             
-            tag = self.extract_tag_from_filename(filename)
-            doc_type = self.classify_document_type(filename)
+            tag = self.extract_tag_from_filename(extraction_filename)
+            doc_type = self.classify_document_type(extraction_filename)
             
             if tag:
                 # Initialize equipment group if needed

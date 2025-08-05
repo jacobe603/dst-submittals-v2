@@ -13,7 +13,7 @@ class Config:
     """Configuration manager with environment variable support"""
     
     # Application version
-    VERSION = "2.0.4-all-sections-fixed"  # All sections now use consistent container hierarchy
+    VERSION = "2.0.5-tag-special-chars"  # Fixed tag extraction to preserve special characters and bookmark generation
     
     def __init__(self):
         # Gotenberg service configuration

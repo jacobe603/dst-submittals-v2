@@ -506,6 +506,23 @@ class GotenbergConverter:
                         actual_page = equipment_page_map[equipment_tag]
                         writer.add_outline_item(equipment_tag, actual_page)
                         logger.info(f"Added bookmark: {equipment_tag} at actual page {actual_page + 1}")
+                    elif equipment_tag == 'CUTSHEETS':
+                        # For CUTSHEETS, find the first page after all equipment groups
+                        # or just add at the current last known position
+                        if equipment_page_map:
+                            # Place after the last equipment group
+                            last_page = max(equipment_page_map.values())
+                            cutsheet_page = last_page + 1
+                        else:
+                            # If no equipment pages found, start from beginning
+                            cutsheet_page = 0
+                        
+                        # Verify we're not going past the end of the document
+                        if cutsheet_page < len(reader.pages):
+                            writer.add_outline_item('CUT SHEETS', cutsheet_page)
+                            logger.info(f"Added bookmark: CUT SHEETS at page {cutsheet_page + 1}")
+                        else:
+                            logger.warning(f"CUTSHEETS section would be beyond PDF page count")
                     else:
                         logger.warning(f"Could not find title page for {equipment_tag} in PDF")
                 

@@ -713,16 +713,21 @@ def upload_files_v2():
         # Create temporary directory for processing
         temp_dir = tempfile.mkdtemp(prefix='dst_web_v2_')
         
-        # Save uploaded files
+        # Save uploaded files and preserve original filenames for tag extraction
         file_paths = []
+        original_filename_map = {}  # Map secure filename back to original
         for file in files:
             if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(temp_dir, filename)
+                original_filename = file.filename
+                secure_name = secure_filename(file.filename)
+                filepath = os.path.join(temp_dir, secure_name)
                 file.save(filepath)
                 
+                # Store mapping to preserve original filename for tag extraction
+                original_filename_map[secure_name] = original_filename
+                
                 # Handle ZIP files
-                if filename.lower().endswith('.zip'):
+                if secure_name.lower().endswith('.zip'):
                     zip_files = extract_zip_file(filepath, temp_dir)
                     file_paths.extend(zip_files)
                 else:
@@ -745,7 +750,8 @@ def upload_files_v2():
                     file_paths=file_paths,
                     correlation_id=correlation_id,
                     output_filename=output_filename,
-                    quality_mode=quality_mode
+                    quality_mode=quality_mode,
+                    original_filename_map=original_filename_map
                 )
                 
                 if result['success']:
@@ -816,16 +822,21 @@ def extract_tags_v2():
         # Create temporary directory
         temp_dir = tempfile.mkdtemp(prefix='dst_tags_v2_')
         
-        # Save uploaded files
+        # Save uploaded files and preserve original filenames for tag extraction
         file_paths = []
+        original_filename_map = {}  # Map secure filename back to original
         for file in files:
             if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(temp_dir, filename)
+                original_filename = file.filename
+                secure_name = secure_filename(file.filename)
+                filepath = os.path.join(temp_dir, secure_name)
                 file.save(filepath)
                 
+                # Store mapping to preserve original filename for tag extraction
+                original_filename_map[secure_name] = original_filename
+                
                 # Handle ZIP files
-                if filename.lower().endswith('.zip'):
+                if secure_name.lower().endswith('.zip'):
                     zip_files = extract_zip_file(filepath, temp_dir)
                     file_paths.extend(zip_files)
                 else:
@@ -839,7 +850,7 @@ def extract_tags_v2():
         
         # Extract tags
         processor = SimpleProcessor()
-        result = processor.extract_tags_only(file_paths, correlation_id)
+        result = processor.extract_tags_only(file_paths, correlation_id, original_filename_map)
         
         if result['success']:
             # Store structure in session for later use

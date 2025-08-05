@@ -476,7 +476,8 @@ class SimpleProcessor:
                      file_paths: List[str], 
                      correlation_id: str,
                      output_filename: str = None,
-                     quality_mode: str = 'high') -> Dict[str, Any]:
+                     quality_mode: str = 'high',
+                     original_filename_map: Dict[str, str] = None) -> Dict[str, Any]:
         """
         Process files into submittal PDF
         
@@ -562,8 +563,12 @@ class SimpleProcessor:
                     if doc_type in docs:
                         for file_path in docs[doc_type]:
                             filename = os.path.basename(file_path)
+                            # Use original filename for display if available
+                            display_filename = filename
+                            if original_filename_map and filename in original_filename_map:
+                                display_filename = original_filename_map[filename]
                             structure[equipment_tag]['documents'].append({
-                                'filename': filename,
+                                'filename': display_filename,
                                 'type': doc_type,
                                 'path': file_path
                             })
