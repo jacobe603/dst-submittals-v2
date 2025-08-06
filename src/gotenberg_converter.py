@@ -167,19 +167,21 @@ class GotenbergConverter:
             <meta charset="UTF-8">
             <style>
                 @page {{
-                    size: letter;
+                    size: 8.5in 11in;
                     margin: 0;
                 }}
                 body {{
                     font-family: 'Helvetica', Arial, sans-serif;
-                    text-align: center;
                     margin: 0;
                     padding: 0;
-                    width: 8.5in;
                     height: 11in;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
+                    display: table;
+                    width: 100%;
+                }}
+                .title-container {{
+                    display: table-cell;
+                    vertical-align: middle;
+                    text-align: center;
                 }}
                 h1 {{
                     font-size: 72px;
@@ -191,7 +193,9 @@ class GotenbergConverter:
             </style>
         </head>
         <body>
-            <h1>{equipment_tag.replace('CUTSHEETS', 'CUT SHEETS')}</h1>
+            <div class="title-container">
+                <h1>{equipment_tag.replace('CUTSHEETS', 'CUT SHEETS')}</h1>
+            </div>
         </body>
         </html>
         """

@@ -13,7 +13,7 @@ class Config:
     """Configuration manager with environment variable support"""
     
     # Application version
-    VERSION = "2.0.6-filename-preservation"  # Fixed filename sanitization removing special chars from equipment tags like BCU-1,2
+    VERSION = "2.0.7-title-page-fixes"  # Fixed title page size (8.5x11) and vertical centering
     
     def __init__(self):
         # Gotenberg service configuration
