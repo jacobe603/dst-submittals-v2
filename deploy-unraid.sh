@@ -117,7 +117,7 @@ services:
     environment:
       - DST_GOTENBERG_URL=http://gotenberg:3000
       - DST_QUALITY_MODE=high
-      - DST_MAX_OUTPUT_FILES=50
+      - DST_MAX_OUTPUT_FILES=10
       - DST_OUTPUT_RETENTION_DAYS=30
       - DST_CLEANUP_ON_STARTUP=true
       - DST_PERIODIC_CLEANUP_HOURS=24

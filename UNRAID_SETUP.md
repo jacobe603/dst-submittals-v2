@@ -100,7 +100,7 @@ The containers will create this structure on your Unraid server:
 |----------|---------|-------------|
 | `DST_GOTENBERG_URL` | `http://gotenberg:3000` | Gotenberg service URL |
 | `DST_QUALITY_MODE` | `high` | PDF quality mode |
-| `DST_MAX_OUTPUT_FILES` | `50` | Max files before cleanup |
+| `DST_MAX_OUTPUT_FILES` | `10` | Max files before cleanup |
 | `DST_OUTPUT_RETENTION_DAYS` | `30` | Days to keep old files |
 | `DST_CLEANUP_ON_STARTUP` | `true` | Run cleanup at startup |
 | `DST_PERIODIC_CLEANUP_HOURS` | `24` | Hours between cleanups |
