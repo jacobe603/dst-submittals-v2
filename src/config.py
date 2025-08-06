@@ -13,7 +13,7 @@ class Config:
     """Configuration manager with environment variable support"""
     
     # Application version
-    VERSION = "2.0.12-reportlab-titles"  # ReportLab title page generation with perfect centering + deterministic bookmarks
+    VERSION = "2.0.13-ui-formatting"  # Consistent section formatting across web interface
     
     def __init__(self):
         # Gotenberg service configuration
