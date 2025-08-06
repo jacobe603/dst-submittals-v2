@@ -73,11 +73,11 @@ git fetch origin
 git reset --hard origin/main
 
 echo "🔨 Rebuilding containers..."
-docker-compose -f docker-compose.unraid.yml build --no-cache
+docker-compose -f unraid-docker-compose.yml build --no-cache
 
 echo "🔄 Restarting services..."
-docker-compose -f docker-compose.unraid.yml down
-docker-compose -f docker-compose.unraid.yml up -d
+docker-compose -f unraid-docker-compose.yml down
+docker-compose -f unraid-docker-compose.yml up -d
 
 echo "⏳ Waiting for services to start..."
 sleep 10
@@ -117,4 +117,4 @@ echo "  2. Test file upload functionality"
 echo "  3. Check cleanup status in web interface"
 echo
 echo "If issues occur, rollback with:"
-echo "  ssh ${UNRAID_USER}@${UNRAID_HOST} 'cd ${APP_DIR} && git reset --hard HEAD~1 && docker-compose -f docker-compose.unraid.yml restart'"
+echo "  ssh ${UNRAID_USER}@${UNRAID_HOST} 'cd ${APP_DIR} && git reset --hard HEAD~1 && docker-compose -f unraid-docker-compose.yml restart'"
