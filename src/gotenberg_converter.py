@@ -28,8 +28,10 @@ except ImportError:
 
 try:
     from .logger import get_logger
+    from .title_page_generator import TitlePageGenerator
 except ImportError:
     from logger import get_logger
+    from title_page_generator import TitlePageGenerator
 
 logger = get_logger('gotenberg_converter')
 
@@ -45,6 +47,16 @@ class GotenbergConverter:
         self.base_url = gotenberg_url.rstrip('/')
         self.session = requests.Session()
         self.container_name = 'gotenberg-service'
+        
+        # Initialize ReportLab title page generator
+        try:
+            self.title_generator = TitlePageGenerator()
+            self.reportlab_available = True
+            logger.debug("ReportLab title page generator initialized")
+        except ImportError:
+            self.title_generator = None
+            self.reportlab_available = False
+            logger.warning("ReportLab not available, falling back to HTML title pages")
         
         # Quality presets for different use cases
         # Note: maxImageResolution must be 75, 150, 300, 600, or 1200 (Gotenberg requirement)
@@ -174,14 +186,14 @@ class GotenbergConverter:
                     font-family: 'Helvetica', Arial, sans-serif;
                     margin: 0;
                     padding: 0;
+                    width: 8.5in;
                     height: 11in;
-                    display: table;
-                    width: 100%;
+                    -webkit-print-color-adjust: exact;
                 }}
                 .title-container {{
-                    display: table-cell;
-                    vertical-align: middle;
                     text-align: center;
+                    width: 100%;
+                    padding-top: 4.5in;  /* Center on 11in page (approximately) */
                 }}
                 h1 {{
                     font-size: 72px;
@@ -245,9 +257,23 @@ class GotenbergConverter:
             # Create title page PDF first
             if include_title_page and equipment_tag:
                 title_pdf = tempfile.mktemp(suffix='_title.pdf')
-                if self._convert_single_file_to_pdf(None, title_pdf, equipment_tag, quality_mode, is_title=True):
-                    individual_pdfs.append(title_pdf)
-                    logger.info(f"Created title page PDF for {equipment_tag}")
+                
+                # Use ReportLab if available, otherwise fall back to HTML
+                if self.reportlab_available:
+                    try:
+                        self.title_generator.create_title_page_pdf(equipment_tag, title_pdf)
+                        individual_pdfs.append(title_pdf)
+                        logger.info(f"Created ReportLab title page PDF for {equipment_tag}")
+                    except Exception as e:
+                        logger.warning(f"ReportLab title page failed, falling back to HTML: {e}")
+                        if self._convert_single_file_to_pdf(None, title_pdf, equipment_tag, quality_mode, is_title=True):
+                            individual_pdfs.append(title_pdf)
+                            logger.info(f"Created HTML title page PDF for {equipment_tag}")
+                else:
+                    # Fall back to HTML method
+                    if self._convert_single_file_to_pdf(None, title_pdf, equipment_tag, quality_mode, is_title=True):
+                        individual_pdfs.append(title_pdf)
+                        logger.info(f"Created HTML title page PDF for {equipment_tag}")
             
             # Convert each file individually to maintain order
             logger.info(f"Converting {len(file_paths)} files individually to maintain order:")
@@ -282,6 +308,11 @@ class GotenbergConverter:
             logger.info(f"Merging {len(individual_pdfs)} PDFs in correct order...")
             success = self.merge_pdfs(individual_pdfs, output_path)
             
+            # Count pages in final PDF for bookmark calculation
+            page_count = 0
+            if success and os.path.exists(output_path):
+                page_count = self._count_pdf_pages(output_path)
+            
             # Cleanup individual PDFs
             for pdf_path in individual_pdfs:
                 try:
@@ -290,7 +321,11 @@ class GotenbergConverter:
                 except Exception as e:
                     logger.warning(f"Failed to cleanup temp PDF {pdf_path}: {e}")
             
-            return success
+            return {
+                'success': success,
+                'page_count': page_count,
+                'title_page_included': include_title_page and equipment_tag is not None
+            }
         
         except Exception as e:
             logger.error(f"Conversion error: {e}")
@@ -433,13 +468,13 @@ class GotenbergConverter:
             logger.error(f"Merge error: {e}")
             return False
     
-    def add_bookmarks_to_pdf(self, pdf_path: str, equipment_structure: Dict, processing_order: List[str]) -> bool:
+    def add_bookmarks_to_pdf(self, pdf_path: str, equipment_page_positions: Dict[str, int], processing_order: List[str]) -> bool:
         """
         Add PDF bookmarks/outline with equipment tags as parents and document types as children
         
         Args:
             pdf_path: Path to the PDF file to add bookmarks to
-            equipment_structure: Equipment structure data from JSON
+            equipment_page_positions: Dict mapping equipment tag to calculated page number (0-indexed)
             processing_order: Order of equipment tags
         
         Returns:
@@ -472,63 +507,29 @@ class GotenbergConverter:
                 for page in reader.pages:
                     writer.add_page(page)
                 
-                logger.info(f"Scanning PDF to find actual equipment title page positions...")
+                logger.info(f"Using calculated page positions for bookmarks (deterministic method)")
                 
-                # Scan through PDF pages to find equipment title pages by content
-                equipment_page_map = {}
+                # Use the calculated page positions (NO heuristics or scanning)
+                total_pages = len(reader.pages)
+                logger.info(f"PDF has {total_pages} total pages")
                 
-                for page_num, page in enumerate(reader.pages):
-                    try:
-                        page_text = page.extract_text().strip()
-                        
-                        # Check if this page contains an equipment tag as the main content
-                        # Title pages typically have the equipment tag as the primary/only text
-                        for equipment_tag in processing_order:
-                            # Look for equipment tag in page text
-                            if equipment_tag in page_text:
-                                # Additional checks to ensure this is likely a title page:
-                                # - Equipment tag should be prominent in the text
-                                # - Page shouldn't have too much other content (not a document page)
-                                lines = [line.strip() for line in page_text.split('\n') if line.strip()]
-                                
-                                # Simple heuristic: if equipment tag appears and page has few lines,
-                                # it's likely a title page
-                                if len(lines) <= 5 and any(equipment_tag in line for line in lines):
-                                    if equipment_tag not in equipment_page_map:  # First occurrence
-                                        equipment_page_map[equipment_tag] = page_num
-                                        logger.info(f"Found {equipment_tag} title page at page {page_num + 1}")
-                                        
-                    except Exception as e:
-                        logger.debug(f"Could not extract text from page {page_num + 1}: {e}")
-                        continue
-                
-                # Create bookmarks using actual page positions found
-                logger.info(f"Creating bookmarks for {len(equipment_page_map)} equipment groups...")
+                # Create bookmarks using calculated page positions (deterministic)
+                logger.info(f"Creating bookmarks for {len(equipment_page_positions)} equipment groups...")
                 
                 for equipment_tag in processing_order:
-                    if equipment_tag in equipment_page_map:
-                        actual_page = equipment_page_map[equipment_tag]
-                        writer.add_outline_item(equipment_tag, actual_page)
-                        logger.info(f"Added bookmark: {equipment_tag} at actual page {actual_page + 1}")
-                    elif equipment_tag == 'CUTSHEETS':
-                        # For CUTSHEETS, find the first page after all equipment groups
-                        # or just add at the current last known position
-                        if equipment_page_map:
-                            # Place after the last equipment group
-                            last_page = max(equipment_page_map.values())
-                            cutsheet_page = last_page + 1
-                        else:
-                            # If no equipment pages found, start from beginning
-                            cutsheet_page = 0
+                    if equipment_tag in equipment_page_positions:
+                        calculated_page = equipment_page_positions[equipment_tag]
                         
-                        # Verify we're not going past the end of the document
-                        if cutsheet_page < len(reader.pages):
-                            writer.add_outline_item('CUT SHEETS', cutsheet_page)
-                            logger.info(f"Added bookmark: CUT SHEETS at page {cutsheet_page + 1}")
+                        # Verify page number is within PDF bounds
+                        if calculated_page < total_pages:
+                            # Display name (convert CUTSHEETS to CUT SHEETS for display)
+                            display_name = equipment_tag.replace('CUTSHEETS', 'CUT SHEETS')
+                            writer.add_outline_item(display_name, calculated_page)
+                            logger.info(f"Added bookmark: '{display_name}' at calculated page {calculated_page + 1}")
                         else:
-                            logger.warning(f"CUTSHEETS section would be beyond PDF page count")
+                            logger.warning(f"Calculated page {calculated_page + 1} for {equipment_tag} exceeds PDF page count ({total_pages})")
                     else:
-                        logger.warning(f"Could not find title page for {equipment_tag} in PDF")
+                        logger.warning(f"No calculated page position for {equipment_tag}")
                 
                 # Write the updated PDF with bookmarks
                 temp_path = pdf_path + '.tmp'
@@ -545,6 +546,30 @@ class GotenbergConverter:
             logger.error(f"Failed to add bookmarks: {e}")
             return False
     
+    def _count_pdf_pages(self, pdf_path: str) -> int:
+        """
+        Count pages in a PDF file
+        
+        Args:
+            pdf_path: Path to PDF file
+            
+        Returns:
+            Number of pages in the PDF
+        """
+        if not PYPDF_AVAILABLE:
+            logger.warning("pypdf not available, assuming 1 page")
+            return 1
+            
+        try:
+            with open(pdf_path, 'rb') as file:
+                reader = PdfReader(file)
+                page_count = len(reader.pages)
+                logger.debug(f"PDF {os.path.basename(pdf_path)} has {page_count} pages")
+                return page_count
+        except Exception as e:
+            logger.warning(f"Could not count pages in {pdf_path}: {e}")
+            return 1  # Fallback assumption
+    
     def get_service_info(self) -> Dict:
         """Get information about Gotenberg service"""
         try:
@@ -555,13 +580,21 @@ class GotenbergConverter:
                 'url': self.base_url,
                 'container_name': self.container_name,
                 'docker_available': self.check_docker_running(),
-                'quality_presets': list(self.quality_presets.keys())
+                'quality_presets': list(self.quality_presets.keys()),
+                'title_page_generator': {
+                    'reportlab_available': self.reportlab_available,
+                    'method': 'ReportLab' if self.reportlab_available else 'HTML fallback'
+                }
             }
         except Exception as e:
             return {
                 'status': 'error',
                 'error': str(e),
-                'url': self.base_url
+                'url': self.base_url,
+                'title_page_generator': {
+                    'reportlab_available': self.reportlab_available,
+                    'method': 'ReportLab' if self.reportlab_available else 'HTML fallback'
+                }
             }
 
 

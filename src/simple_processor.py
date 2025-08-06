@@ -266,7 +266,7 @@ class SimpleProcessor:
                 # Create PDF for this equipment group
                 temp_pdf = tempfile.mktemp(suffix=f'_{equipment_tag}.pdf')
                 
-                success = self.gotenberg.convert_files_to_pdf(
+                result = self.gotenberg.convert_files_to_pdf(
                     file_paths=equipment_files,
                     output_path=temp_pdf,
                     quality_mode=quality_mode,
@@ -274,9 +274,20 @@ class SimpleProcessor:
                     include_title_page=True
                 )
                 
+                # Handle new return format with page count information
+                if isinstance(result, dict):
+                    success = result.get('success', False)
+                    page_count = result.get('page_count', 0)
+                    title_page_included = result.get('title_page_included', False)
+                else:
+                    # Fallback for old boolean return
+                    success = result
+                    page_count = 0
+                    title_page_included = True
+                
                 if success and os.path.exists(temp_pdf):
-                    equipment_pdfs.append(temp_pdf)
-                    logger.info(f"Successfully converted {equipment_tag}")
+                    equipment_pdfs.append((temp_pdf, page_count, title_page_included))
+                    logger.info(f"Successfully converted {equipment_tag} ({page_count} pages)")
                 else:
                     logger.warning(f"Failed to convert {equipment_tag}")
         
@@ -289,14 +300,14 @@ class SimpleProcessor:
         
         return equipment_pdfs
     
-    def _assemble_final_pdf(self, equipment_pdfs: List[str], output_path: Path,
+    def _assemble_final_pdf(self, equipment_pdfs: List[tuple], output_path: Path,
                           structure_data: Optional[Dict], processing_order: List[str],
                           correlation_id: str) -> None:
         """
         Assemble equipment PDFs into final submittal with bookmarks
         
         Args:
-            equipment_pdfs: List of PDF paths to merge
+            equipment_pdfs: List of tuples (pdf_path, page_count, title_page_included) to merge
             output_path: Final output path
             structure_data: Structure data for bookmarks
             processing_order: Order of equipment tags
@@ -310,14 +321,29 @@ class SimpleProcessor:
                            f'Merging {len(equipment_pdfs)} equipment sections')
         
         try:
-            if len(equipment_pdfs) == 1:
+            # Extract PDF paths and calculate page positions
+            pdf_paths = []
+            equipment_page_positions = {}
+            current_page = 0
+            
+            for i, (pdf_path, page_count, title_page_included) in enumerate(equipment_pdfs):
+                equipment_tag = processing_order[i]
+                
+                # Each equipment group starts at current_page (title page position)
+                equipment_page_positions[equipment_tag] = current_page
+                logger.info(f"Calculated position for {equipment_tag}: page {current_page + 1}")
+                
+                pdf_paths.append(pdf_path)
+                current_page += page_count
+            
+            if len(pdf_paths) == 1:
                 # Only one PDF, just move it
                 import shutil
-                shutil.move(equipment_pdfs[0], output_path)
+                shutil.move(pdf_paths[0], output_path)
                 success = True
             else:
                 # Merge multiple PDFs
-                success = self.gotenberg.merge_pdfs(equipment_pdfs, str(output_path))
+                success = self.gotenberg.merge_pdfs(pdf_paths, str(output_path))
             
             if not success or not output_path.exists():
                 raise RuntimeError(
@@ -331,36 +357,27 @@ class SimpleProcessor:
                                'Adding PDF bookmarks...',
                                'Creating navigation outline')
             
-            if structure_data and 'structure' in structure_data:
-                # Convert V2 structure to equipment_structure format for bookmarks
-                equipment_structure = {}
-                for equipment_tag in processing_order:
-                    if equipment_tag in structure_data['structure']:
-                        equipment_structure[equipment_tag] = structure_data['structure'][equipment_tag]
-                
-                # Add bookmarks to the final PDF
-                bookmark_success = self.gotenberg.add_bookmarks_to_pdf(
-                    str(output_path), 
-                    equipment_structure, 
-                    processing_order
-                )
-                
-                if bookmark_success:
-                    logger.info("Successfully added PDF bookmarks")
-                else:
-                    logger.warning("Failed to add PDF bookmarks, but PDF generation succeeded")
+            # Add bookmarks using calculated page positions (always, not dependent on structure_data)
+            bookmark_success = self.gotenberg.add_bookmarks_to_pdf(
+                str(output_path), 
+                equipment_page_positions, 
+                processing_order
+            )
+            
+            if bookmark_success:
+                logger.info("Successfully added PDF bookmarks")
             else:
-                logger.info("No structure data available for bookmark creation")
+                logger.warning("Failed to add PDF bookmarks, but PDF generation succeeded")
         
         finally:
             # Cleanup temp files
-            for temp_pdf in equipment_pdfs:
+            for pdf_path, page_count, title_page_included in equipment_pdfs:
                 try:
-                    if os.path.exists(temp_pdf):
-                        os.remove(temp_pdf)
-                        logger.debug(f"Cleaned up temp file: {temp_pdf}")
+                    if os.path.exists(pdf_path):
+                        os.remove(pdf_path)
+                        logger.debug(f"Cleaned up temp file: {pdf_path}")
                 except Exception as e:
-                    logger.warning(f"Failed to cleanup temp file {temp_pdf}: {e}")
+                    logger.warning(f"Failed to cleanup temp file {pdf_path}: {e}")
     
     def _finalize_processing(self, output_path: Path, output_filename: str,
                            equipment_groups: Dict, file_paths: List[str],
