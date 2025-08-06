@@ -54,11 +54,11 @@ git log --oneline -1
 git pull origin main
 
 # Rebuild the Docker container with new code
-docker-compose -f docker-compose.unraid.yml build --no-cache
+docker-compose -f unraid-docker-compose.yml build --no-cache
 
 # Restart services
-docker-compose -f docker-compose.unraid.yml down
-docker-compose -f docker-compose.unraid.yml up -d
+docker-compose -f unraid-docker-compose.yml down
+docker-compose -f unraid-docker-compose.yml up -d
 
 # Verify services are healthy
 docker ps | grep dst
@@ -82,11 +82,11 @@ echo -e "\n📥 Pulling latest from GitHub..."
 git pull origin main
 
 echo -e "\n🔨 Rebuilding containers..."
-docker-compose -f docker-compose.unraid.yml build --no-cache
+docker-compose -f unraid-docker-compose.yml build --no-cache
 
 echo -e "\n🔄 Restarting services..."
-docker-compose -f docker-compose.unraid.yml down
-docker-compose -f docker-compose.unraid.yml up -d
+docker-compose -f unraid-docker-compose.yml down
+docker-compose -f unraid-docker-compose.yml up -d
 
 echo -e "\n✅ Update complete! New version:"
 git log --oneline -1
@@ -104,7 +104,7 @@ Make it executable: `chmod +x /mnt/user/appdata/dst-submittals-v2/update.sh`
 Install Watchtower on Unraid to auto-update containers:
 
 ```yaml
-# Add to your docker-compose.unraid.yml
+# Add to your unraid-docker-compose.yml
 watchtower:
   image: containrrr/watchtower
   container_name: watchtower
@@ -142,8 +142,8 @@ jobs:
         script: |
           cd /mnt/user/appdata/dst-submittals-v2/source
           git pull origin main
-          docker-compose -f docker-compose.unraid.yml build --no-cache
-          docker-compose -f docker-compose.unraid.yml restart
+          docker-compose -f unraid-docker-compose.yml build --no-cache
+          docker-compose -f unraid-docker-compose.yml restart
 ```
 
 ### Option 3: Cron Job on Unraid
@@ -223,8 +223,8 @@ git reset --hard HEAD~1
 git reset --hard [commit-hash]
 
 # Rebuild with old version
-docker-compose -f docker-compose.unraid.yml build --no-cache
-docker-compose -f docker-compose.unraid.yml restart
+docker-compose -f unraid-docker-compose.yml build --no-cache
+docker-compose -f unraid-docker-compose.yml restart
 ```
 
 ## 🔍 Troubleshooting Sync Issues
