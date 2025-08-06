@@ -120,13 +120,14 @@ class SimpleProcessor:
             logger.error(f"Failed to save structure to JSON: {e}")
             return False
     
-    def _load_or_extract_structure(self, file_paths: List[str], correlation_id: str) -> tuple:
+    def _load_or_extract_structure(self, file_paths: List[str], correlation_id: str, original_filename_map: Dict[str, str] = None) -> tuple:
         """
         Load structure from JSON or extract tags from files
         
         Args:
             file_paths: List of file paths to process
             correlation_id: Correlation ID for tracking
+            original_filename_map: Optional mapping of secure filename to original filename
         
         Returns:
             Tuple of (structure_data, equipment_groups, processing_order)
@@ -150,6 +151,13 @@ class SimpleProcessor:
             for file_path in file_paths:
                 filename_to_path[os.path.basename(file_path)] = file_path
             
+            # Create reverse mapping: original filename → secure filename
+            original_to_secure = {}
+            if original_filename_map:
+                for secure_filename, original_filename in original_filename_map.items():
+                    original_to_secure[original_filename] = secure_filename
+                    logger.debug(f"Filename mapping: '{original_filename}' → '{secure_filename}'")
+            
             # Create equipment_groups preserving JSON position order
             equipment_groups = {}
             for equipment_tag in processing_order:
@@ -161,18 +169,27 @@ class SimpleProcessor:
                     # Create ordered file list for this equipment
                     equipment_files = []
                     for doc in sorted_docs:
-                        filename = doc['filename']
-                        # Try to find matching file by filename
-                        if filename in filename_to_path:
-                            actual_path = filename_to_path[filename]
+                        original_filename = doc['filename']
+                        # Convert original filename to secure filename for filesystem lookup
+                        secure_filename = original_to_secure.get(original_filename, original_filename)
+                        
+                        logger.debug(f"Looking for file: original='{original_filename}' secure='{secure_filename}'")
+                        
+                        # Try to find matching file by secure filename
+                        if secure_filename in filename_to_path:
+                            actual_path = filename_to_path[secure_filename]
                             equipment_files.append(actual_path)
+                            logger.debug(f"Found file: {actual_path}")
+                        else:
+                            logger.warning(f"File not found: '{secure_filename}' (from original: '{original_filename}')")
+                            logger.debug(f"Available files: {list(filename_to_path.keys())}")
                     
                     if equipment_files:
                         # Store as special '_ordered_files' key to indicate position-based ordering
                         equipment_groups[equipment_tag] = {'_ordered_files': equipment_files}
         else:
             logger.info("No valid JSON structure found, extracting tags from files")
-            equipment_groups = self.tag_extractor.extract_tags_from_files(file_paths)
+            equipment_groups = self.tag_extractor.extract_tags_from_files(file_paths, original_filename_map)
             processing_order = self.tag_extractor.get_processing_order(equipment_groups)
             structure_data = None
         
@@ -498,7 +515,7 @@ class SimpleProcessor:
             
             # Step 2: Load or extract structure
             structure_data, equipment_groups, processing_order = self._load_or_extract_structure(
-                file_paths, correlation_id
+                file_paths, correlation_id, original_filename_map
             )
             
             # Step 3: Convert equipment groups to PDFs

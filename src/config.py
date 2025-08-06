@@ -13,7 +13,7 @@ class Config:
     """Configuration manager with environment variable support"""
     
     # Application version
-    VERSION = "2.0.7-title-page-fixes"  # Fixed title page size (8.5x11) and vertical centering
+    VERSION = "2.0.8-pdf-generation-fix"  # Fixed filename matching for PDF generation + title page improvements
     
     def __init__(self):
         # Gotenberg service configuration
