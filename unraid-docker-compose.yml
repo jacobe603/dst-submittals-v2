@@ -22,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dst-submittals-v2
+    container_name: dst-submittals-app
     ports:
       - "5000:5000"
     depends_on:
